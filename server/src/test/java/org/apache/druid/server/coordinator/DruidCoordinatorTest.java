@@ -161,7 +161,7 @@ public class DruidCoordinatorTest extends CuratorTestBase
         druidCoordinatorConfig
     );
     loadQueuePeon.start();
-    druidNode = new DruidNode("hey", "what", false, 1234, null, true, false);
+    druidNode = new DruidNode("hey", "what", false, 1234, null, true, false, "invalid", false);
     loadManagementPeons = new ConcurrentHashMap<>();
     scheduledExecutorFactory = new ScheduledExecutorFactory()
     {
@@ -266,7 +266,7 @@ public class DruidCoordinatorTest extends CuratorTestBase
     EasyMock.replay(dataSource);
     EasyMock.expect(druidServer.toImmutableDruidServer()).andReturn(
         new ImmutableDruidServer(
-            new DruidServerMetadata("from", null, null, 5L, ServerType.HISTORICAL, null, 0),
+            new DruidServerMetadata("from", null, null, 5L, ServerType.HISTORICAL, null, 0, "rack"),
             1L,
             ImmutableMap.of("dummyDataSource", dataSource),
             1
@@ -278,7 +278,7 @@ public class DruidCoordinatorTest extends CuratorTestBase
 
     EasyMock.expect(druidServer2.toImmutableDruidServer()).andReturn(
         new ImmutableDruidServer(
-            new DruidServerMetadata("to", null, null, 5L, ServerType.HISTORICAL, null, 0),
+            new DruidServerMetadata("to", null, null, 5L, ServerType.HISTORICAL, null, 0, "rack"),
             1L,
             ImmutableMap.of("dummyDataSource", dataSource),
             1
@@ -360,7 +360,7 @@ public class DruidCoordinatorTest extends CuratorTestBase
     EasyMock.replay(immutableDruidDataSource);
 
     // Setup ServerInventoryView
-    druidServer = new DruidServer("server1", "localhost", null, 5L, ServerType.HISTORICAL, tier, 0);
+    druidServer = new DruidServer("server1", "localhost", null, 5L, ServerType.HISTORICAL, tier, 0, "rack");
     loadManagementPeons.put("server1", loadQueuePeon);
     EasyMock.expect(serverInventoryView.getInventory()).andReturn(
         ImmutableList.of(druidServer)
@@ -443,8 +443,8 @@ public class DruidCoordinatorTest extends CuratorTestBase
     final Rule hotTier = new IntervalLoadRule(Intervals.of("2018-01-01/P1M"), ImmutableMap.of(hotTierName, 1));
     final Rule coldTier = new ForeverLoadRule(ImmutableMap.of(coldTierName, 1));
     final String loadPathCold = "/druid/loadqueue/cold:1234";
-    final DruidServer hotServer = new DruidServer("hot", "hot", null, 5L, ServerType.HISTORICAL, hotTierName, 0);
-    final DruidServer coldServer = new DruidServer("cold", "cold", null, 5L, ServerType.HISTORICAL, coldTierName, 0);
+    final DruidServer hotServer = new DruidServer("hot", "hot", null, 5L, ServerType.HISTORICAL, hotTierName, 0, "rack");
+    final DruidServer coldServer = new DruidServer("cold", "cold", null, 5L, ServerType.HISTORICAL, coldTierName, 0, "rack");
 
     final Map<String, DataSegment> dataSegments = ImmutableMap.of(
         "2018-01-02T00:00:00.000Z_2018-01-03T00:00:00.000Z",

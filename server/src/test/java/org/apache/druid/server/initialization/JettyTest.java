@@ -201,7 +201,9 @@ public class JettyTest extends BaseJettyTest
                 JsonConfigProvider.bindInstance(
                     binder,
                     Key.get(DruidNode.class, Self.class),
-                    new DruidNode("test", "localhost", false, ephemeralPort, ephemeralPort + 1, true, true)
+                    new DruidNode("test", "localhost", false, ephemeralPort, ephemeralPort + 1, true, true,
+                                  "invalid",
+                                  false)
                 );
                 binder.bind(TLSServerConfig.class).toInstance(tlsConfig);
                 binder.bind(JettyServerInitializer.class).to(JettyServerInit.class).in(LazySingleton.class);

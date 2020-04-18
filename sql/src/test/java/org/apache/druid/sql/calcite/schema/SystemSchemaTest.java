@@ -355,37 +355,37 @@ public class SystemSchemaTest extends CalciteTestBase
   final List<DataSegment> realtimeSegments = ImmutableList.of(segment2, segment4, segment5);
 
   private final DiscoveryDruidNode coordinator = new DiscoveryDruidNode(
-      new DruidNode("s1", "localhost", false, 8081, null, true, false),
+      new DruidNode("s1", "localhost", false, 8081, null, true, false, "invalid", false),
       NodeRole.COORDINATOR,
       ImmutableMap.of()
   );
 
   private final DiscoveryDruidNode overlord = new DiscoveryDruidNode(
-      new DruidNode("s2", "localhost", false, 8090, null, true, false),
+      new DruidNode("s2", "localhost", false, 8090, null, true, false, "invalid", false),
       NodeRole.OVERLORD,
       ImmutableMap.of()
   );
 
   private final DiscoveryDruidNode broker1 = new DiscoveryDruidNode(
-      new DruidNode("s3", "localhost", false, 8082, null, true, false),
+      new DruidNode("s3", "localhost", false, 8082, null, true, false, "invalid", false),
       NodeRole.BROKER,
       ImmutableMap.of()
   );
 
   private final DiscoveryDruidNode broker2 = new DiscoveryDruidNode(
-      new DruidNode("s3", "brokerHost", false, 8082, null, true, false),
+      new DruidNode("s3", "brokerHost", false, 8082, null, true, false, "invalid", false),
       NodeRole.BROKER,
       ImmutableMap.of()
   );
 
   private final DiscoveryDruidNode router = new DiscoveryDruidNode(
-      new DruidNode("s4", "localhost", false, 8888, null, true, false),
+      new DruidNode("s4", "localhost", false, 8888, null, true, false, "invalid", false),
       NodeRole.ROUTER,
       ImmutableMap.of()
   );
 
   private final DiscoveryDruidNode historical1 = new DiscoveryDruidNode(
-      new DruidNode("s5", "localhost", false, 8083, null, true, false),
+      new DruidNode("s5", "localhost", false, 8083, null, true, false, "invalid", false),
       NodeRole.HISTORICAL,
       ImmutableMap.of(
           DataNodeService.DISCOVERY_SERVICE_KEY, new DataNodeService("tier", 1000, ServerType.HISTORICAL, 0)
@@ -393,21 +393,21 @@ public class SystemSchemaTest extends CalciteTestBase
   );
 
   private final DiscoveryDruidNode historical2 = new DiscoveryDruidNode(
-      new DruidNode("s5", "histHost", false, 8083, null, true, false),
+      new DruidNode("s5", "histHost", false, 8083, null, true, false, "invalid", false),
       NodeRole.HISTORICAL,
       ImmutableMap.of(
           DataNodeService.DISCOVERY_SERVICE_KEY, new DataNodeService("tier", 1000, ServerType.HISTORICAL, 0))
   );
 
   private final DiscoveryDruidNode middleManager = new DiscoveryDruidNode(
-      new DruidNode("s6", "mmHost", false, 8091, null, true, false),
+      new DruidNode("s6", "mmHost", false, 8091, null, true, false, "invalid", false),
       NodeRole.MIDDLE_MANAGER,
       ImmutableMap.of(
           DataNodeService.DISCOVERY_SERVICE_KEY, new DataNodeService("tier", 1000, ServerType.INDEXER_EXECUTOR, 0))
   );
 
   private final DiscoveryDruidNode peon1 = new DiscoveryDruidNode(
-      new DruidNode("s7", "localhost", false, 8080, null, true, false),
+      new DruidNode("s7", "localhost", false, 8080, null, true, false, "invalid", false),
       NodeRole.PEON,
       ImmutableMap.of(
           DataNodeService.DISCOVERY_SERVICE_KEY, new DataNodeService("tier", 1000, ServerType.HISTORICAL, 0)
@@ -415,21 +415,21 @@ public class SystemSchemaTest extends CalciteTestBase
   );
 
   private final DiscoveryDruidNode peon2 = new DiscoveryDruidNode(
-      new DruidNode("s7", "peonHost", false, 8080, null, true, false),
+      new DruidNode("s7", "peonHost", false, 8080, null, true, false, "invalid", false),
       NodeRole.PEON,
       ImmutableMap.of(
           DataNodeService.DISCOVERY_SERVICE_KEY, new DataNodeService("tier", 1000, ServerType.HISTORICAL, 0))
   );
 
   private final DiscoveryDruidNode indexer = new DiscoveryDruidNode(
-      new DruidNode("s8", "indexerHost", false, 8091, null, true, false),
+      new DruidNode("s8", "indexerHost", false, 8091, null, true, false, "invalid", false),
       NodeRole.INDEXER,
       ImmutableMap.of(
           DataNodeService.DISCOVERY_SERVICE_KEY, new DataNodeService("tier", 1000, ServerType.INDEXER_EXECUTOR, 0))
   );
 
   private final ImmutableDruidServer druidServer1 = new ImmutableDruidServer(
-      new DruidServerMetadata("server1", "localhost:0000", null, 5L, ServerType.REALTIME, DruidServer.DEFAULT_TIER, 0),
+      new DruidServerMetadata("server1", "localhost:0000", null, 5L, ServerType.REALTIME, DruidServer.DEFAULT_TIER, 0, "rack"),
       1L,
       ImmutableMap.of(
           "dummy",
@@ -439,7 +439,7 @@ public class SystemSchemaTest extends CalciteTestBase
   );
 
   private final ImmutableDruidServer druidServer2 = new ImmutableDruidServer(
-      new DruidServerMetadata("server2", "server2:1234", null, 5L, ServerType.HISTORICAL, DruidServer.DEFAULT_TIER, 0),
+      new DruidServerMetadata("server2", "server2:1234", null, 5L, ServerType.HISTORICAL, DruidServer.DEFAULT_TIER, 0, "rack"),
       1L,
       ImmutableMap.of(
           "dummy",

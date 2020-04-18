@@ -25,13 +25,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.NavigableSet;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class RandomBalancerStrategy implements BalancerStrategy
 {
   @Override
-  public ServerHolder findNewSegmentHomeReplicator(DataSegment proposalSegment, List<ServerHolder> serverHolders)
+  public ServerHolder findNewSegmentHomeReplicator(
+      DataSegment proposalSegment,
+      List<ServerHolder> serverHolders,
+      Set<String> usedRacks
+  )
   {
     if (serverHolders.size() == 1) {
       return null;
@@ -45,7 +50,11 @@ public class RandomBalancerStrategy implements BalancerStrategy
   }
 
   @Override
-  public ServerHolder findNewSegmentHomeBalancer(DataSegment proposalSegment, List<ServerHolder> serverHolders)
+  public ServerHolder findNewSegmentHomeBalancer(
+      DataSegment proposalSegment,
+      List<ServerHolder> serverHolders,
+      Set<String> usedRacks
+  )
   {
     return null;  //To change body of implemented methods use File | Settings | File Templates.
   }
@@ -57,7 +66,11 @@ public class RandomBalancerStrategy implements BalancerStrategy
   }
 
   @Override
-  public Iterator<ServerHolder> pickServersToDrop(DataSegment toDropSegment, NavigableSet<ServerHolder> serverHolders)
+  public Iterator<ServerHolder> pickServersToDrop(
+      DataSegment toDropSegment,
+      NavigableSet<ServerHolder> serverHolders,
+      boolean rackAware
+  )
   {
     List<ServerHolder> serverList = new ArrayList<>(serverHolders);
     Collections.shuffle(serverList);

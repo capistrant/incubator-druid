@@ -251,7 +251,7 @@ public class TaskLifecycleTest
   private TaskConfig taskConfig;
   private DataSegmentPusher dataSegmentPusher;
   private AppenderatorsManager appenderatorsManager;
-  private DruidNode druidNode = new DruidNode("dummy", "dummy", false, 10000, null, true, false);
+  private DruidNode druidNode = new DruidNode("dummy", "dummy", false, 10000, null, true, false, "invalid", false);
   private TaskLocation taskLocation = TaskLocation.create(
       druidNode.getHost(),
       druidNode.getPlaintextPort(),
@@ -607,7 +607,7 @@ public class TaskLifecycleTest
 
     return new TaskToolboxFactory(
         taskConfig,
-        new DruidNode("druid/middlemanager", "localhost", false, 8091, null, true, false),
+        new DruidNode("druid/middlemanager", "localhost", false, 8091, null, true, false, "invalid", false),
         tac,
         emitter,
         dataSegmentPusher,

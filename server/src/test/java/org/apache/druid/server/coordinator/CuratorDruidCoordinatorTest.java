@@ -203,7 +203,7 @@ public class CuratorDruidCoordinatorTest extends CuratorTestBase
         callbackExec,
         druidCoordinatorConfig
     );
-    druidNode = new DruidNode("hey", "what", false, 1234, null, true, false);
+    druidNode = new DruidNode("hey", "what", false, 1234, null, true, false, "invalid", false);
     loadManagementPeons = new ConcurrentHashMap<>();
     scheduledExecutorFactory = (corePoolSize, nameFormat) -> Executors.newSingleThreadScheduledExecutor();
     leaderAnnouncerLatch = new CountDownLatch(1);
@@ -294,7 +294,8 @@ public class CuratorDruidCoordinatorTest extends CuratorTestBase
         10000000L,
         ServerType.HISTORICAL,
         "default_tier",
-        0
+        0,
+        "rack"
     );
 
     DruidServer dest = new DruidServer(
@@ -304,7 +305,8 @@ public class CuratorDruidCoordinatorTest extends CuratorTestBase
         10000000L,
         ServerType.HISTORICAL,
         "default_tier",
-        0
+        0,
+        "rack"
     );
 
     setupZNodeForServer(source, zkPathsConfig, jsonMapper);

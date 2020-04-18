@@ -762,7 +762,7 @@ public class CalciteTests
   )
   {
 
-    final DruidNode coordinatorNode = new DruidNode("test", "dummy", false, 8080, null, true, false);
+    final DruidNode coordinatorNode = new DruidNode("test", "dummy", false, 8080, null, true, false, "invalid", false);
     FakeDruidNodeDiscoveryProvider provider = new FakeDruidNodeDiscoveryProvider(
         ImmutableMap.of(
             NodeRole.COORDINATOR, new FakeDruidNodeDiscovery(ImmutableMap.of(NodeRole.COORDINATOR, coordinatorNode))

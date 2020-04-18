@@ -52,7 +52,7 @@ public class LookupListeningAnnouncerConfigTest
               JsonConfigProvider.bindInstance(
                   binder,
                   Key.get(DruidNode.class, Self.class),
-                  new DruidNode("test-inject", null, false, null, null, true, false)
+                  new DruidNode("test-inject", null, false, null, null, true, false, "invalid", false)
               );
               binder
                   .bind(Key.get(String.class, Names.named(DataSourceTaskIdHolder.DATA_SOURCE_BINDING)))

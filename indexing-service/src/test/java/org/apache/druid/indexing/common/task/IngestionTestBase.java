@@ -293,7 +293,7 @@ public abstract class IngestionTestBase extends InitializedNullHandlingTest
 
         final TaskToolbox box = new TaskToolbox(
             null,
-            new DruidNode("druid/middlemanager", "localhost", false, 8091, null, true, false),
+            new DruidNode("druid/middlemanager", "localhost", false, 8091, null, true, false, "invalid", false),
             taskActionClient,
             null,
             new LocalDataSegmentPusher(new LocalDataSegmentPusherConfig()),

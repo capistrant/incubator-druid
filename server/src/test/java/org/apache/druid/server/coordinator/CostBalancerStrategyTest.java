@@ -71,7 +71,7 @@ public class CostBalancerStrategyTest
       String serverName = "DruidServer_Name_" + i;
       ServerHolder serverHolder = new ServerHolder(
           new ImmutableDruidServer(
-              new DruidServerMetadata(serverName, "localhost", null, 10000000L, ServerType.HISTORICAL, "hot", 1),
+              new DruidServerMetadata(serverName, "localhost", null, 10000000L, ServerType.HISTORICAL, "hot", 1, "rack"),
               3000L,
               ImmutableMap.of("DUMMY", dataSource),
               segments.size()
@@ -140,7 +140,7 @@ public class CostBalancerStrategyTest
     BalancerStrategy strategy = new CostBalancerStrategy(
         MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(4))
     );
-    ServerHolder holder = strategy.findNewSegmentHomeReplicator(segment, serverHolderList);
+    ServerHolder holder = strategy.findNewSegmentHomeReplicator(segment, serverHolderList, null);
     Assert.assertNotNull("Should be able to find a place for new segment!!", holder);
     Assert.assertEquals("Best Server should be BEST_SERVER", "BEST_SERVER", holder.getServer().getName());
   }
@@ -154,7 +154,7 @@ public class CostBalancerStrategyTest
     BalancerStrategy strategy = new CostBalancerStrategy(
         MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1))
     );
-    ServerHolder holder = strategy.findNewSegmentHomeReplicator(segment, serverHolderList);
+    ServerHolder holder = strategy.findNewSegmentHomeReplicator(segment, serverHolderList, null);
     Assert.assertNotNull("Should be able to find a place for new segment!!", holder);
     Assert.assertEquals("Best Server should be BEST_SERVER", "BEST_SERVER", holder.getServer().getName());
   }

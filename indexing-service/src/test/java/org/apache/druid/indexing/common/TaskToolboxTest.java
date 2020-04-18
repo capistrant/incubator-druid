@@ -98,7 +98,7 @@ public class TaskToolboxTest
 
     taskToolbox = new TaskToolboxFactory(
         new TaskConfig(temporaryFolder.newFile().toString(), null, null, 50000, null, false, null, null, null),
-        new DruidNode("druid/middlemanager", "localhost", false, 8091, null, true, false),
+        new DruidNode("druid/middlemanager", "localhost", false, 8091, null, true, false, "invalid", false),
         mockTaskActionClientFactory,
         mockEmitter,
         mockSegmentPusher,

@@ -99,8 +99,8 @@ public class CachingCostBalancerStrategyTest
         .stream()
         .mapToInt(
             s -> {
-              ServerHolder s1 = cachingCostBalancerStrategy.findNewSegmentHomeBalancer(s, serverHolderList);
-              ServerHolder s2 = costBalancerStrategy.findNewSegmentHomeBalancer(s, serverHolderList);
+              ServerHolder s1 = cachingCostBalancerStrategy.findNewSegmentHomeBalancer(s, serverHolderList, null);
+              ServerHolder s2 = costBalancerStrategy.findNewSegmentHomeBalancer(s, serverHolderList, null);
               return (s1.getServer().getName().equals(s2.getServer().getName())) ? 0 : 1;
             }
         )
@@ -134,7 +134,7 @@ public class CachingCostBalancerStrategyTest
       DateTime referenceTime
   )
   {
-    DruidServer druidServer = new DruidServer(name, host, null, maxSize, ServerType.HISTORICAL, "normal", 0);
+    DruidServer druidServer = new DruidServer(name, host, null, maxSize, ServerType.HISTORICAL, "normal", 0, "rack");
     createDataSegments(numberOfSegments, random, referenceTime)
         .forEach(druidServer::addDataSegment);
     return new ServerHolder(

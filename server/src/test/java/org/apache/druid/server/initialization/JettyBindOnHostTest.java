@@ -60,7 +60,7 @@ public class JettyBindOnHostTest extends BaseJettyTest
                 JsonConfigProvider.bindInstance(
                     binder,
                     Key.get(DruidNode.class, Self.class),
-                    new DruidNode("test", "localhost", true, null, null, true, false)
+                    new DruidNode("test", "localhost", true, null, null, true, false, "invalid", false)
                 );
                 binder.bind(JettyServerInitializer.class).to(JettyServerInit.class).in(LazySingleton.class);
                 Jerseys.addResource(binder, DefaultResource.class);

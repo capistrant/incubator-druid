@@ -105,7 +105,8 @@ public class BrokerServerViewTest extends CuratorTestBase
         10000000L,
         ServerType.HISTORICAL,
         "default_tier",
-        0
+        0,
+        "rack"
     );
 
     setupZNodeForServer(druidServer, zkPathsConfig, jsonMapper);
@@ -173,7 +174,8 @@ public class BrokerServerViewTest extends CuratorTestBase
                 10000000L,
                 ServerType.HISTORICAL,
                 "default_tier",
-                0
+                0,
+                "rack"
             );
           }
         }

@@ -74,19 +74,19 @@ public class TieredBrokerHostSelectorTest
     druidNodeDiscoveryProvider = EasyMock.createStrictMock(DruidNodeDiscoveryProvider.class);
 
     node1 = new DiscoveryDruidNode(
-        new DruidNode("hotBroker", "hotHost", false, 8080, null, true, false),
+        new DruidNode("hotBroker", "hotHost", false, 8080, null, true, false, "invalid", false),
         NodeRole.BROKER,
         ImmutableMap.of()
     );
 
     node2 = new DiscoveryDruidNode(
-        new DruidNode("coldBroker", "coldHost1", false, 8080, null, true, false),
+        new DruidNode("coldBroker", "coldHost1", false, 8080, null, true, false, "invalid", false),
         NodeRole.BROKER,
         ImmutableMap.of()
     );
 
     node3 = new DiscoveryDruidNode(
-        new DruidNode("coldBroker", "coldHost2", false, 8080, null, true, false),
+        new DruidNode("coldBroker", "coldHost2", false, 8080, null, true, false, "invalid", false),
         NodeRole.BROKER,
         ImmutableMap.of()
     );

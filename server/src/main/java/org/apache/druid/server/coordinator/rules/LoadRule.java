@@ -21,6 +21,7 @@ package org.apache.druid.server.coordinator.rules;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import org.apache.druid.client.ImmutableDruidServer;
 import org.apache.druid.java.util.common.IAE;
 import org.apache.druid.java.util.common.StringUtils;
 import org.apache.druid.java.util.emitter.EmittingLogger;
@@ -37,11 +38,13 @@ import org.apache.druid.timeline.SegmentId;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -158,6 +161,24 @@ public abstract class LoadRule implements Rule
   }
 
   /**
+   * Returns a list of racks that this segment is being served or loaded on within the cluster
+   * @param druidCluster
+   * @param segment
+   * @return
+   */
+  private static Set<String> getUsedRacks(final DruidCluster druidCluster, final DataSegment segment)
+  {
+    final Map<String, NavigableSet<ServerHolder>> serverMap = druidCluster.getHistoricals();
+    Predicate<ServerHolder> isServedOrLoaded = s -> (s.isLoadingSegment(segment) || s.isServingSegment(segment));
+    Set<String> rackList = new HashSet<>();
+    for (NavigableSet<ServerHolder> serverSet : serverMap.values()) {
+      Set<String> partialRackList = serverSet.stream().filter(isServedOrLoaded).map(ServerHolder::getServer).map(ImmutableDruidServer::getRack).collect(Collectors.toSet());
+      rackList.addAll(partialRackList);
+    }
+    return rackList;
+  }
+
+  /**
    * Iterates through each tier and find the respective segment homes; with the found segment homes, selects the one
    * with the highest priority to be the holder for the primary replica.
    */
@@ -194,7 +215,7 @@ public abstract class LoadRule implements Rule
         continue;
       }
 
-      final ServerHolder candidate = params.getBalancerStrategy().findNewSegmentHomeReplicator(segment, holders);
+      final ServerHolder candidate = params.getBalancerStrategy().findNewSegmentHomeReplicator(segment, holders, null);
       if (candidate == null) {
         log.warn(noAvailability);
       } else {
@@ -277,6 +298,11 @@ public abstract class LoadRule implements Rule
         targetReplicantsInTier
     );
 
+    Set<String> usedRacks = null;
+    if (params.isRackAwareBalancing()) {
+      usedRacks = getUsedRacks(params.getDruidCluster(), segment);
+      log.info("Used Racks for segment [%s] in LoadRule.java: %s", segment.getId(), usedRacks.toString());
+    }
     final List<ServerHolder> holders = getFilteredHolders(tier, params.getDruidCluster(), predicate);
     // if no holders available for assignment
     if (holders.isEmpty()) {
@@ -295,13 +321,19 @@ public abstract class LoadRule implements Rule
       ServerHolder holder = strategyCache.remove(tier);
       // Does strategy call if not in cache
       if (holder == null) {
-        holder = params.getBalancerStrategy().findNewSegmentHomeReplicator(segment, holders);
+        holder = params.getBalancerStrategy().findNewSegmentHomeReplicator(segment, holders, usedRacks);
       }
 
       if (holder == null) {
         log.warn(noAvailability);
         return numAssigned;
       }
+
+      // Add rack of replicant to set of racks serving segment
+      if (usedRacks != null) {
+        usedRacks.add(holder.getServer().getRack());
+      }
+
       holders.remove(holder);
 
       final SegmentId segmentId = segment.getId();
@@ -349,7 +381,7 @@ public abstract class LoadRule implements Rule
         final int currentReplicantsInTier = entry.getIntValue();
         final int numToDrop = currentReplicantsInTier - targetReplicants.getOrDefault(tier, 0);
         if (numToDrop > 0) {
-          numDropped = dropForTier(numToDrop, holders, segment, params.getBalancerStrategy());
+          numDropped = dropForTier(numToDrop, holders, segment, params.getBalancerStrategy(), params.isRackAwareBalancing());
         } else {
           numDropped = 0;
         }
@@ -379,7 +411,8 @@ public abstract class LoadRule implements Rule
       final int numToDrop,
       final NavigableSet<ServerHolder> holdersInTier,
       final DataSegment segment,
-      final BalancerStrategy balancerStrategy
+      final BalancerStrategy balancerStrategy,
+      boolean rackAware
   )
   {
     Map<Boolean, TreeSet<ServerHolder>> holders = holdersInTier.stream()
@@ -390,9 +423,9 @@ public abstract class LoadRule implements Rule
                                                                ));
     TreeSet<ServerHolder> decommissioningServers = holders.get(true);
     TreeSet<ServerHolder> activeServers = holders.get(false);
-    int left = dropSegmentFromServers(balancerStrategy, segment, decommissioningServers, numToDrop);
+    int left = dropSegmentFromServers(balancerStrategy, segment, decommissioningServers, numToDrop, rackAware);
     if (left > 0) {
-      left = dropSegmentFromServers(balancerStrategy, segment, activeServers, left);
+      left = dropSegmentFromServers(balancerStrategy, segment, activeServers, left, rackAware);
     }
     if (left != 0) {
       log.warn("I have no servers serving [%s]?", segment.getId());
@@ -403,10 +436,11 @@ public abstract class LoadRule implements Rule
   private static int dropSegmentFromServers(
       BalancerStrategy balancerStrategy,
       DataSegment segment,
-      NavigableSet<ServerHolder> holders, int numToDrop
+      NavigableSet<ServerHolder> holders, int numToDrop,
+      boolean rackAware
   )
   {
-    final Iterator<ServerHolder> iterator = balancerStrategy.pickServersToDrop(segment, holders);
+    final Iterator<ServerHolder> iterator = balancerStrategy.pickServersToDrop(segment, holders, rackAware);
 
     while (numToDrop > 0) {
       if (!iterator.hasNext()) {

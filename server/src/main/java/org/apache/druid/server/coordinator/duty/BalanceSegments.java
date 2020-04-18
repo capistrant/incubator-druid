@@ -39,9 +39,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -210,12 +212,29 @@ public class BalanceSegments implements CoordinatorDuty
                                   (maxToLoad <= 0 || s.getNumberOfSegmentsInQueue() < maxToLoad)))
                     .collect(Collectors.toList());
 
+        Set<String> rackList = null;
+        if (params.isRackAwareBalancing()) {
+          // Get list of racks in acvive server list who are serving segmentToMove
+          Predicate<ServerHolder> isServedOrLoaded = s -> (s.isLoadingSegment(segmentToMove) || s.isServingSegment(
+              segmentToMove));
+          rackList = toMoveTo.stream()
+                             .filter(isServedOrLoaded)
+                             .map(ServerHolder::getServer)
+                             .map(ImmutableDruidServer::getRack)
+                             .collect(Collectors.toSet());
+        }
+
         if (toMoveToWithLoadQueueCapacityAndNotServingSegment.size() > 0) {
           final ServerHolder destinationHolder =
-              strategy.findNewSegmentHomeBalancer(segmentToMove, toMoveToWithLoadQueueCapacityAndNotServingSegment);
+              strategy.findNewSegmentHomeBalancer(
+                  segmentToMove,
+                  toMoveToWithLoadQueueCapacityAndNotServingSegment,
+                  rackList
+              );
 
           if (destinationHolder != null && !destinationHolder.getServer().equals(fromServer)) {
             if (moveSegment(segmentToMoveHolder, destinationHolder.getServer(), params)) {
+              log.info("Moving %s from %s to %s", segmentToMove.getId(), fromServer.getName(), destinationHolder.getServer().getName());
               moved++;
             } else {
               unmoved++;

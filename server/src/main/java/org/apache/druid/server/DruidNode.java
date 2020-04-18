@@ -50,6 +50,12 @@ public class DruidNode
   @NotNull
   private String host;
 
+  @JsonProperty
+  private String rack = "invalid";
+
+  @JsonProperty
+  private boolean enableRackAwareness = false;
+
   /**
    * This property indicates whether the druid node's internal jetty server bind on {@link DruidNode#host}.
    * Default is false, which means binding to all interfaces.
@@ -87,10 +93,23 @@ public class DruidNode
       Integer plaintextPort,
       Integer tlsPort,
       boolean enablePlaintextPort,
-      boolean enableTlsPort
+      boolean enableTlsPort,
+      String rack,
+      boolean enableRackAwareness
   )
   {
-    this(serviceName, host, bindOnHost, plaintextPort, null, tlsPort, enablePlaintextPort, enableTlsPort);
+    this(
+        serviceName,
+        host,
+        bindOnHost,
+        plaintextPort,
+        null,
+        tlsPort,
+        enablePlaintextPort,
+        enableTlsPort,
+        rack,
+        enableRackAwareness
+    );
   }
 
   /**
@@ -118,7 +137,9 @@ public class DruidNode
       @JacksonInject @Named("servicePort") @JsonProperty("port") Integer port,
       @JacksonInject @Named("tlsServicePort") @JsonProperty("tlsPort") Integer tlsPort,
       @JsonProperty("enablePlaintextPort") Boolean enablePlaintextPort,
-      @JsonProperty("enableTlsPort") boolean enableTlsPort
+      @JsonProperty("enableTlsPort") boolean enableTlsPort,
+      @JsonProperty("rack") String rack,
+      @JsonProperty("enableRackAwareness") boolean enableRackAwareness
   )
   {
     init(
@@ -128,7 +149,9 @@ public class DruidNode
         plaintextPort != null ? plaintextPort : port,
         tlsPort,
         enablePlaintextPort == null ? true : enablePlaintextPort.booleanValue(),
-        enableTlsPort
+        enableTlsPort,
+        rack,
+        enableRackAwareness
     );
   }
 
@@ -139,13 +162,19 @@ public class DruidNode
       Integer plainTextPort,
       Integer tlsPort,
       boolean enablePlaintextPort,
-      boolean enableTlsPort
+      boolean enableTlsPort,
+      String rack,
+      boolean enableRackAwareness
   )
   {
     Preconditions.checkNotNull(serviceName);
 
     if (!enableTlsPort && !enablePlaintextPort) {
       throw new IAE("At least one of the druid.enablePlaintextPort or druid.enableTlsPort needs to be true.");
+    }
+
+    if (enableRackAwareness && (rack == null || rack.equals("invalid"))) {
+      throw new IAE("druid.rack needs to be set if druid.enableRackAwareness is true.");
     }
 
     this.enablePlaintextPort = enablePlaintextPort;
@@ -199,6 +228,12 @@ public class DruidNode
     this.serviceName = serviceName;
     this.host = host;
     this.bindOnHost = bindOnHost;
+    if (rack == null) {
+      this.rack = "invalid";
+    } else {
+      this.rack = rack;
+    }
+    this.enableRackAwareness = enableRackAwareness;
   }
 
   public String getServiceName()
@@ -236,9 +271,28 @@ public class DruidNode
     return tlsPort;
   }
 
+  public boolean isEnableRackAwareness()
+  {
+    return enableRackAwareness;
+  }
+
+  public String getRack()
+  {
+    return rack;
+  }
+
   public DruidNode withService(String service)
   {
-    return new DruidNode(service, host, bindOnHost, plaintextPort, tlsPort, enablePlaintextPort, enableTlsPort);
+    return new DruidNode(
+        service,
+        host,
+        bindOnHost,
+        plaintextPort,
+        tlsPort,
+        enablePlaintextPort,
+        enableTlsPort,
+        "invalid", enableRackAwareness
+    );
   }
 
   public String getServiceScheme()
@@ -320,13 +374,25 @@ public class DruidNode
            tlsPort == druidNode.tlsPort &&
            enableTlsPort == druidNode.enableTlsPort &&
            Objects.equals(serviceName, druidNode.serviceName) &&
-           Objects.equals(host, druidNode.host);
+           Objects.equals(host, druidNode.host) &&
+           rack.equals(druidNode.rack) &&
+           enableRackAwareness == druidNode.enableRackAwareness;
   }
 
   @Override
   public int hashCode()
   {
-    return Objects.hash(serviceName, host, port, plaintextPort, enablePlaintextPort, tlsPort, enableTlsPort);
+    return Objects.hash(
+        serviceName,
+        host,
+        port,
+        plaintextPort,
+        enablePlaintextPort,
+        tlsPort,
+        enableTlsPort,
+        rack,
+        enableRackAwareness
+    );
   }
 
   @Override
@@ -341,6 +407,8 @@ public class DruidNode
            ", enablePlaintextPort=" + enablePlaintextPort +
            ", tlsPort=" + tlsPort +
            ", enableTlsPort=" + enableTlsPort +
+           ", rack='" + rack + '\'' +
+           ", enableRackAwareness=" + enableRackAwareness +
            '}';
   }
 }

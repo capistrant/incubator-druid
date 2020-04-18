@@ -68,7 +68,8 @@ public class DruidServer implements Comparable<DruidServer>
         config.getMaxSize(),
         type,
         config.getTier(),
-        DEFAULT_PRIORITY
+        DEFAULT_PRIORITY,
+        node.getRack()
     );
   }
 
@@ -80,10 +81,11 @@ public class DruidServer implements Comparable<DruidServer>
       @JsonProperty("maxSize") long maxSize,
       @JsonProperty("type") ServerType type,
       @JsonProperty("tier") String tier,
-      @JsonProperty("priority") int priority
+      @JsonProperty("priority") int priority,
+      @JsonProperty("rack") String rack
   )
   {
-    this.metadata = new DruidServerMetadata(name, hostAndPort, hostAndTlsPort, maxSize, type, tier, priority);
+    this.metadata = new DruidServerMetadata(name, hostAndPort, hostAndTlsPort, maxSize, type, tier, priority, rack);
   }
 
   @JsonProperty
@@ -146,6 +148,12 @@ public class DruidServer implements Comparable<DruidServer>
   public int getPriority()
   {
     return metadata.getPriority();
+  }
+
+  @JsonProperty
+  public String getRack()
+  {
+    return metadata.getRack();
   }
 
   public String getScheme()

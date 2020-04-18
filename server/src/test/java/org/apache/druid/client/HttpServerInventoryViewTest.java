@@ -170,7 +170,7 @@ public class HttpServerInventoryViewTest
     );
 
     DiscoveryDruidNode druidNode = new DiscoveryDruidNode(
-        new DruidNode("service", "host", false, 8080, null, true, false),
+        new DruidNode("service", "host", false, 8080, null, true, false, "invalid", false),
         NodeRole.HISTORICAL,
         ImmutableMap.of(
             DataNodeService.DISCOVERY_SERVICE_KEY, new DataNodeService("tier", 1000, ServerType.HISTORICAL, 0)

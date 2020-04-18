@@ -44,7 +44,7 @@ public class ServersResourceTest
   @Before
   public void setUp()
   {
-    DruidServer dummyServer = new DruidServer("dummy", "host", null, 1234L, ServerType.HISTORICAL, "tier", 0);
+    DruidServer dummyServer = new DruidServer("dummy", "host", null, 1234L, ServerType.HISTORICAL, "tier", 0, "rack");
     DataSegment segment = DataSegment.builder()
                                      .dataSource("dataSource")
                                      .interval(Intervals.of("2016-03-22T14Z/2016-03-22T15Z"))
@@ -116,7 +116,7 @@ public class ServersResourceTest
   @Test
   public void testDruidServerSerde() throws Exception
   {
-    DruidServer server = new DruidServer("dummy", "dummyHost", null, 1234, ServerType.HISTORICAL, "dummyTier", 1);
+    DruidServer server = new DruidServer("dummy", "dummyHost", null, 1234, ServerType.HISTORICAL, "dummyTier", 1, "rack");
     String serverJson = objectMapper.writeValueAsString(server);
     String expected = "{\"name\":\"dummy\",\"host\":\"dummyHost\",\"hostAndTlsPort\":null,\"maxSize\":1234,\"type\":\"historical\",\"tier\":\"dummyTier\",\"priority\":1}";
     Assert.assertEquals(expected, serverJson);
@@ -134,7 +134,8 @@ public class ServersResourceTest
         1234,
         ServerType.HISTORICAL,
         "tier",
-        1
+        1,
+        "rack"
     );
     String metadataJson = objectMapper.writeValueAsString(metadata);
     String expected = "{\"name\":\"dummy\",\"host\":\"host\",\"hostAndTlsPort\":null,\"maxSize\":1234,\"type\":\"historical\",\"tier\":\"tier\",\"priority\":1}";
@@ -149,7 +150,8 @@ public class ServersResourceTest
         0,
         ServerType.HISTORICAL,
         "t1",
-        0
+        0,
+        "rack"
     );
 
     Assert.assertEquals(metadata, objectMapper.readValue(
@@ -164,7 +166,8 @@ public class ServersResourceTest
         0,
         ServerType.HISTORICAL,
         "t1",
-        0
+        0,
+        "rack"
     );
     Assert.assertEquals(metadata, objectMapper.readValue(
         "{\"name\":\"host:123\",\"maxSize\":0,\"type\":\"HISTORICAL\",\"tier\":\"t1\",\"priority\":0,\"host\":\"host:123\",\"hostAndTlsPort\":\"host:214\"}",

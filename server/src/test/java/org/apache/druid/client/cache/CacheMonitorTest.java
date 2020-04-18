@@ -45,7 +45,7 @@ public class CacheMonitorTest
             JsonConfigProvider.bindInstance(
                 binder,
                 Key.get(DruidNode.class, Self.class),
-                new DruidNode("test-inject", null, false, null, null, true, false)
+                new DruidNode("test-inject", null, false, null, null, true, false, "invalid", false)
             );
           }
         }
@@ -66,7 +66,7 @@ public class CacheMonitorTest
             JsonConfigProvider.bindInstance(
                 binder,
                 Key.get(DruidNode.class, Self.class),
-                new DruidNode("test-inject", null, false, null, null, true, false)
+                new DruidNode("test-inject", null, false, null, null, true, false, "invalid", false)
             );
             binder.bind(Cache.class).toInstance(MapCache.create(0));
           }

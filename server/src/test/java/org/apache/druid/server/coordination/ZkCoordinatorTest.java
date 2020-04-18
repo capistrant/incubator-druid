@@ -55,7 +55,8 @@ public class ZkCoordinatorTest extends CuratorTestBase
       0,
       ServerType.HISTORICAL,
       "normal",
-      0
+      0,
+      "rack"
   );
   private final ZkPathsConfig zkPaths = new ZkPathsConfig()
   {

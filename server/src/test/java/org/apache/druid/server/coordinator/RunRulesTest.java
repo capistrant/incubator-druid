@@ -145,7 +145,7 @@ public class RunRulesTest
         .addTier(
             "hot",
             new ServerHolder(
-                new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 0)
+                new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 0, "rack")
                     .toImmutableDruidServer(),
                 mockPeon
             )
@@ -153,7 +153,7 @@ public class RunRulesTest
         .addTier(
             "normal",
             new ServerHolder(
-                new DruidServer("serverNorm", "hostNorm", null, 1000, ServerType.HISTORICAL, "normal", 0)
+                new DruidServer("serverNorm", "hostNorm", null, 1000, ServerType.HISTORICAL, "normal", 0, "rack")
                     .toImmutableDruidServer(),
                 mockPeon
             )
@@ -161,7 +161,7 @@ public class RunRulesTest
         .addTier(
             "cold",
             new ServerHolder(
-                new DruidServer("serverCold", "hostCold", null, 1000, ServerType.HISTORICAL, "cold", 0)
+                new DruidServer("serverCold", "hostCold", null, 1000, ServerType.HISTORICAL, "cold", 0, "rack")
                     .toImmutableDruidServer(),
                 mockPeon
             )
@@ -239,12 +239,12 @@ public class RunRulesTest
         .addTier(
             "hot",
             new ServerHolder(
-                new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 0)
+                new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 0, "rack")
                     .toImmutableDruidServer(),
                 mockPeon
             ),
             new ServerHolder(
-                new DruidServer("serverHot2", "hostHot2", null, 1000, ServerType.HISTORICAL, "hot", 0)
+                new DruidServer("serverHot2", "hostHot2", null, 1000, ServerType.HISTORICAL, "hot", 0, "rack")
                     .toImmutableDruidServer(),
                 mockPeon
             )
@@ -252,7 +252,7 @@ public class RunRulesTest
         .addTier(
             "cold",
             new ServerHolder(
-                new DruidServer("serverCold", "hostCold", null, 1000, ServerType.HISTORICAL, "cold", 0)
+                new DruidServer("serverCold", "hostCold", null, 1000, ServerType.HISTORICAL, "cold", 0, "rack")
                     .toImmutableDruidServer(),
                 mockPeon
             )
@@ -303,7 +303,7 @@ public class RunRulesTest
     ).atLeastOnce();
     EasyMock.replay(databaseRuleManager);
 
-    DruidServer normServer = new DruidServer("serverNorm", "hostNorm", null, 1000, ServerType.HISTORICAL, "normal", 0);
+    DruidServer normServer = new DruidServer("serverNorm", "hostNorm", null, 1000, ServerType.HISTORICAL, "normal", 0, "rack");
     for (DataSegment segment : usedSegments) {
       normServer.addDataSegment(segment);
     }
@@ -313,7 +313,7 @@ public class RunRulesTest
         .addTier(
             "hot",
             new ServerHolder(
-                new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 0)
+                new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 0, "rack")
                     .toImmutableDruidServer(),
                 mockPeon
             )
@@ -374,7 +374,7 @@ public class RunRulesTest
         .addTier(
             "normal",
             new ServerHolder(
-                new DruidServer("serverNorm", "hostNorm", null, 1000, ServerType.HISTORICAL, "normal", 0)
+                new DruidServer("serverNorm", "hostNorm", null, 1000, ServerType.HISTORICAL, "normal", 0, "rack")
                     .toImmutableDruidServer(),
                 mockPeon
             )
@@ -423,7 +423,7 @@ public class RunRulesTest
         .addTier(
             "normal",
             new ServerHolder(
-                new DruidServer("serverNorm", "hostNorm", null, 1000, ServerType.HISTORICAL, "normal", 0)
+                new DruidServer("serverNorm", "hostNorm", null, 1000, ServerType.HISTORICAL, "normal", 0, "rack")
                     .toImmutableDruidServer(),
                 mockPeon
             )
@@ -463,7 +463,7 @@ public class RunRulesTest
     ).atLeastOnce();
     EasyMock.replay(databaseRuleManager);
 
-    DruidServer server = new DruidServer("serverNorm", "hostNorm", null, 1000, ServerType.HISTORICAL, "normal", 0);
+    DruidServer server = new DruidServer("serverNorm", "hostNorm", null, 1000, ServerType.HISTORICAL, "normal", 0, "rack");
     for (DataSegment segment : usedSegments) {
       server.addDataSegment(segment);
     }
@@ -512,10 +512,10 @@ public class RunRulesTest
     ).atLeastOnce();
     EasyMock.replay(databaseRuleManager);
 
-    DruidServer server1 = new DruidServer("serverNorm", "hostNorm", null, 1000, ServerType.HISTORICAL, "normal", 0);
+    DruidServer server1 = new DruidServer("serverNorm", "hostNorm", null, 1000, ServerType.HISTORICAL, "normal", 0, "rack");
     server1.addDataSegment(usedSegments.get(0));
 
-    DruidServer server2 = new DruidServer("serverNorm2", "hostNorm2", null, 1000, ServerType.HISTORICAL, "normal", 0);
+    DruidServer server2 = new DruidServer("serverNorm2", "hostNorm2", null, 1000, ServerType.HISTORICAL, "normal", 0, "rack");
     for (DataSegment segment : usedSegments) {
       server2.addDataSegment(segment);
     }
@@ -576,9 +576,9 @@ public class RunRulesTest
     ).atLeastOnce();
     EasyMock.replay(databaseRuleManager);
 
-    DruidServer server1 = new DruidServer("server1", "host1", null, 1000, ServerType.HISTORICAL, "hot", 0);
+    DruidServer server1 = new DruidServer("server1", "host1", null, 1000, ServerType.HISTORICAL, "hot", 0, "rack");
     server1.addDataSegment(usedSegments.get(0));
-    DruidServer server2 = new DruidServer("serverNorm2", "hostNorm2", null, 1000, ServerType.HISTORICAL, "normal", 0);
+    DruidServer server2 = new DruidServer("serverNorm2", "hostNorm2", null, 1000, ServerType.HISTORICAL, "normal", 0, "rack");
     for (DataSegment segment : usedSegments) {
       server2.addDataSegment(segment);
     }
@@ -629,8 +629,8 @@ public class RunRulesTest
     ).atLeastOnce();
     EasyMock.replay(databaseRuleManager);
 
-    DruidServer server1 = new DruidServer("server1", "host1", null, 1000, ServerType.HISTORICAL, "hot", 0);
-    DruidServer server2 = new DruidServer("serverNorm2", "hostNorm2", null, 1000, ServerType.HISTORICAL, "normal", 0);
+    DruidServer server1 = new DruidServer("server1", "host1", null, 1000, ServerType.HISTORICAL, "hot", 0, "rack");
+    DruidServer server2 = new DruidServer("serverNorm2", "hostNorm2", null, 1000, ServerType.HISTORICAL, "normal", 0, "rack");
     for (DataSegment segment : usedSegments) {
       server2.addDataSegment(segment);
     }
@@ -679,11 +679,11 @@ public class RunRulesTest
         .atLeastOnce();
     EasyMock.replay(databaseRuleManager);
 
-    DruidServer server1 = new DruidServer("server1", "host1", null, 1000, ServerType.HISTORICAL, "normal", 0);
+    DruidServer server1 = new DruidServer("server1", "host1", null, 1000, ServerType.HISTORICAL, "normal", 0, "rack");
     server1.addDataSegment(usedSegments.get(0));
-    DruidServer server2 = new DruidServer("serverNorm2", "hostNorm2", null, 1000, ServerType.HISTORICAL, "normal", 0);
+    DruidServer server2 = new DruidServer("serverNorm2", "hostNorm2", null, 1000, ServerType.HISTORICAL, "normal", 0, "rack");
     server2.addDataSegment(usedSegments.get(1));
-    DruidServer server3 = new DruidServer("serverNorm3", "hostNorm3", null, 1000, ServerType.HISTORICAL, "normal", 0);
+    DruidServer server3 = new DruidServer("serverNorm3", "hostNorm3", null, 1000, ServerType.HISTORICAL, "normal", 0, "rack");
     server3.addDataSegment(usedSegments.get(1));
     server3.addDataSegment(usedSegments.get(2));
 
@@ -762,12 +762,12 @@ public class RunRulesTest
         .addTier(
             "hot",
             new ServerHolder(
-                new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 0)
+                new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 0, "rack")
                     .toImmutableDruidServer(),
                 mockPeon
             ),
             new ServerHolder(
-                new DruidServer("serverHot2", "hostHot2", null, 1000, ServerType.HISTORICAL, "hot", 0)
+                new DruidServer("serverHot2", "hostHot2", null, 1000, ServerType.HISTORICAL, "hot", 0, "rack")
                     .toImmutableDruidServer(),
                 mockPeon
             )
@@ -864,7 +864,7 @@ public class RunRulesTest
         .addTier(
             "hot",
             new ServerHolder(
-                new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 1)
+                new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 1, "rack")
                     .toImmutableDruidServer(),
                 mockPeon
             )
@@ -879,7 +879,8 @@ public class RunRulesTest
                     1000,
                     ServerType.HISTORICAL,
                     DruidServer.DEFAULT_TIER,
-                    0
+                    0,
+                    "rack"
                 ).toImmutableDruidServer(),
                 mockPeon
             )
@@ -938,11 +939,11 @@ public class RunRulesTest
     List<DataSegment> longerUsedSegments = Lists.newArrayList(usedSegments);
     longerUsedSegments.add(overFlowSegment);
 
-    DruidServer server1 = new DruidServer("serverNorm1", "hostNorm1", null, 1000, ServerType.HISTORICAL, "normal", 0);
+    DruidServer server1 = new DruidServer("serverNorm1", "hostNorm1", null, 1000, ServerType.HISTORICAL, "normal", 0, "rack");
     for (DataSegment segment : longerUsedSegments) {
       server1.addDataSegment(segment);
     }
-    DruidServer server2 = new DruidServer("serverNorm2", "hostNorm2", null, 1000, ServerType.HISTORICAL, "normal", 0);
+    DruidServer server2 = new DruidServer("serverNorm2", "hostNorm2", null, 1000, ServerType.HISTORICAL, "normal", 0, "rack");
     for (DataSegment segment : longerUsedSegments) {
       server2.addDataSegment(segment);
     }
@@ -1030,7 +1031,8 @@ public class RunRulesTest
                     1000,
                     ServerType.HISTORICAL,
                     DruidServer.DEFAULT_TIER,
-                    0
+                    0,
+                    "rack"
                 ).toImmutableDruidServer(),
                 mockPeon
             )

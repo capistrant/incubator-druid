@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NavigableSet;
+import java.util.Set;
 
 /**
  * This interface describes the coordinator balancing strategy, which is responsible for making decisions on where
@@ -39,19 +40,29 @@ public interface BalancerStrategy
    * Find the best server to move a {@link DataSegment} to according the the balancing strategy.
    * @param proposalSegment segment to move
    * @param serverHolders servers to consider as move destinations
+   * @param usedRacks
    * @return The server to move to, or null if no move should be made or no server is suitable
    */
   @Nullable
-  ServerHolder findNewSegmentHomeBalancer(DataSegment proposalSegment, List<ServerHolder> serverHolders);
+  ServerHolder findNewSegmentHomeBalancer(
+      DataSegment proposalSegment,
+      List<ServerHolder> serverHolders,
+      Set<String> usedRacks
+  );
 
   /**
    * Find the best server on which to place a {@link DataSegment} replica according to the balancing strategy
    * @param proposalSegment segment to replicate
    * @param serverHolders servers to consider as replica holders
+   * @param usedRacks
    * @return The server to replicate to, or null if no suitable server is found
    */
   @Nullable
-  ServerHolder findNewSegmentHomeReplicator(DataSegment proposalSegment, List<ServerHolder> serverHolders);
+  ServerHolder findNewSegmentHomeReplicator(
+      DataSegment proposalSegment,
+      List<ServerHolder> serverHolders,
+      Set<String> usedRacks
+  );
 
   /**
    * Pick the best segment to move from one of the supplied set of servers according to the balancing strategy.
@@ -68,9 +79,14 @@ public interface BalancerStrategy
    * over-replicated.
    * @param toDropSegment segment to drop from one or more servers
    * @param serverHolders set of historicals to consider dropping from
+   * @param rackAware
    * @return Iterator for set of historicals, ordered by drop preference
    */
-  default Iterator<ServerHolder> pickServersToDrop(DataSegment toDropSegment, NavigableSet<ServerHolder> serverHolders)
+  default Iterator<ServerHolder> pickServersToDrop(
+      DataSegment toDropSegment,
+      NavigableSet<ServerHolder> serverHolders,
+      boolean rackAware
+  )
   {
     // By default, use the reverse order to get the holders with least available size first.
     return serverHolders.descendingIterator();

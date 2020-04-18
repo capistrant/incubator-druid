@@ -1580,7 +1580,7 @@ public class AppenderatorDriverRealtimeIndexTaskTest
 
     taskToolboxFactory = new TaskToolboxFactory(
         taskConfig,
-        new DruidNode("druid/middlemanager", "localhost", false, 8091, null, true, false),
+        new DruidNode("druid/middlemanager", "localhost", false, 8091, null, true, false, "invalid", false),
         taskActionClientFactory,
         EMITTER,
         new TestDataSegmentPusher(),

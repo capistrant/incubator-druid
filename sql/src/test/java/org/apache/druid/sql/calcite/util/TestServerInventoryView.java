@@ -52,7 +52,8 @@ public class TestServerInventoryView implements TimelineServerView
       0,
       ServerType.HISTORICAL,
       "dummy",
-      0
+      0,
+      "rack"
   );
   private static final DruidServerMetadata DUMMY_SERVER_REALTIME = new DruidServerMetadata(
       "dummy2",
@@ -61,7 +62,8 @@ public class TestServerInventoryView implements TimelineServerView
       0,
       ServerType.REALTIME,
       "dummy",
-      0
+      0,
+      "rack"
   );
   private final List<DataSegment> segments;
   private List<DataSegment> realtimeSegments = new ArrayList<>();

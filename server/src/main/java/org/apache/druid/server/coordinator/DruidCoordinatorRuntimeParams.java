@@ -70,6 +70,7 @@ public class DruidCoordinatorRuntimeParams
   private final CoordinatorStats stats;
   private final DateTime balancerReferenceTimestamp;
   private final BalancerStrategy balancerStrategy;
+  private final boolean rackAwareBalancing;
 
   private DruidCoordinatorRuntimeParams(
       long startTimeNanos,
@@ -85,7 +86,8 @@ public class DruidCoordinatorRuntimeParams
       CoordinatorCompactionConfig coordinatorCompactionConfig,
       CoordinatorStats stats,
       DateTime balancerReferenceTimestamp,
-      BalancerStrategy balancerStrategy
+      BalancerStrategy balancerStrategy,
+      boolean rackAwareBalancing
   )
   {
     this.startTimeNanos = startTimeNanos;
@@ -102,6 +104,7 @@ public class DruidCoordinatorRuntimeParams
     this.stats = stats;
     this.balancerReferenceTimestamp = balancerReferenceTimestamp;
     this.balancerStrategy = balancerStrategy;
+    this.rackAwareBalancing = rackAwareBalancing;
   }
 
   public long getStartTimeNanos()
@@ -195,6 +198,11 @@ public class DruidCoordinatorRuntimeParams
     return dataSourcesSnapshot;
   }
 
+  public boolean isRackAwareBalancing()
+  {
+    return rackAwareBalancing;
+  }
+
   public static Builder newBuilder()
   {
     return new Builder();
@@ -216,7 +224,8 @@ public class DruidCoordinatorRuntimeParams
         coordinatorCompactionConfig,
         stats,
         balancerReferenceTimestamp,
-        balancerStrategy
+        balancerStrategy,
+        rackAwareBalancing
     );
   }
 
@@ -236,7 +245,8 @@ public class DruidCoordinatorRuntimeParams
         coordinatorCompactionConfig,
         stats,
         balancerReferenceTimestamp,
-        balancerStrategy
+        balancerStrategy,
+        rackAwareBalancing
     );
   }
 
@@ -256,6 +266,7 @@ public class DruidCoordinatorRuntimeParams
     private CoordinatorStats stats;
     private DateTime balancerReferenceTimestamp;
     private BalancerStrategy balancerStrategy;
+    private boolean rackAwareBalancing;
 
     private Builder()
     {
@@ -272,6 +283,7 @@ public class DruidCoordinatorRuntimeParams
       this.coordinatorDynamicConfig = CoordinatorDynamicConfig.builder().build();
       this.coordinatorCompactionConfig = CoordinatorCompactionConfig.empty();
       this.balancerReferenceTimestamp = DateTimes.nowUtc();
+      this.rackAwareBalancing = false;
     }
 
     Builder(
@@ -288,7 +300,8 @@ public class DruidCoordinatorRuntimeParams
         CoordinatorCompactionConfig coordinatorCompactionConfig,
         CoordinatorStats stats,
         DateTime balancerReferenceTimestamp,
-        BalancerStrategy balancerStrategy
+        BalancerStrategy balancerStrategy,
+        boolean rackAwareBalancing
     )
     {
       this.startTimeNanos = startTimeNanos;
@@ -305,6 +318,7 @@ public class DruidCoordinatorRuntimeParams
       this.stats = stats;
       this.balancerReferenceTimestamp = balancerReferenceTimestamp;
       this.balancerStrategy = balancerStrategy;
+      this.rackAwareBalancing = rackAwareBalancing;
     }
 
     public DruidCoordinatorRuntimeParams build()
@@ -324,7 +338,8 @@ public class DruidCoordinatorRuntimeParams
           coordinatorCompactionConfig,
           stats,
           balancerReferenceTimestamp,
-          balancerStrategy
+          balancerStrategy,
+          rackAwareBalancing
       );
     }
 
@@ -434,6 +449,12 @@ public class DruidCoordinatorRuntimeParams
     public Builder withBalancerStrategy(BalancerStrategy balancerStrategy)
     {
       this.balancerStrategy = balancerStrategy;
+      return this;
+    }
+
+    public Builder withRackAwareBalancing(boolean rackAwareBalancing)
+    {
+      this.rackAwareBalancing = rackAwareBalancing;
       return this;
     }
   }

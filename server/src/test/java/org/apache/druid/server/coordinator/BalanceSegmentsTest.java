@@ -47,6 +47,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.Set;
 
 public class BalanceSegmentsTest
 {
@@ -220,7 +221,7 @@ public class BalanceSegmentsTest
             .andReturn(new BalancerSegmentHolder(druidServer1, segment1))
             .andReturn(new BalancerSegmentHolder(druidServer1, segment2));
 
-    EasyMock.expect(strategy.findNewSegmentHomeBalancer(EasyMock.anyObject(), EasyMock.anyObject()))
+    EasyMock.expect(strategy.findNewSegmentHomeBalancer(EasyMock.anyObject(), EasyMock.anyObject(), null))
             .andReturn(new ServerHolder(druidServer3, peon3))
             .anyTimes();
     EasyMock.replay(strategy);
@@ -286,7 +287,7 @@ public class BalanceSegmentsTest
             .andReturn(new BalancerSegmentHolder(druidServer2, segment3))
             .andReturn(new BalancerSegmentHolder(druidServer2, segment4));
 
-    EasyMock.expect(strategy.findNewSegmentHomeBalancer(EasyMock.anyObject(), EasyMock.anyObject()))
+    EasyMock.expect(strategy.findNewSegmentHomeBalancer(EasyMock.anyObject(), EasyMock.anyObject(), null))
             .andReturn(new ServerHolder(druidServer3, peon3))
             .anyTimes();
     EasyMock.replay(strategy);
@@ -331,7 +332,7 @@ public class BalanceSegmentsTest
     EasyMock.expect(strategy.pickSegmentToMove(EasyMock.anyObject()))
             .andReturn(new BalancerSegmentHolder(druidServer1, segment1))
             .anyTimes();
-    EasyMock.expect(strategy.findNewSegmentHomeBalancer(EasyMock.anyObject(), EasyMock.anyObject())).andAnswer(() -> {
+    EasyMock.expect(strategy.findNewSegmentHomeBalancer(EasyMock.anyObject(), EasyMock.anyObject(), null)).andAnswer(() -> {
       List<ServerHolder> holders = (List<ServerHolder>) EasyMock.getCurrentArguments()[1];
       return holders.get(0);
     }).anyTimes();
@@ -365,7 +366,7 @@ public class BalanceSegmentsTest
     EasyMock.expect(strategy.pickSegmentToMove(EasyMock.anyObject()))
             .andReturn(new BalancerSegmentHolder(druidServer1, segment1))
             .once();
-    EasyMock.expect(strategy.findNewSegmentHomeBalancer(EasyMock.anyObject(), EasyMock.anyObject()))
+    EasyMock.expect(strategy.findNewSegmentHomeBalancer(EasyMock.anyObject(), EasyMock.anyObject(), null))
             .andReturn(holder2)
             .once();
     EasyMock.replay(strategy);
@@ -599,15 +600,23 @@ public class BalanceSegmentsTest
     }
 
     @Override
-    public ServerHolder findNewSegmentHomeBalancer(DataSegment proposalSegment, List<ServerHolder> serverHolders)
+    public ServerHolder findNewSegmentHomeBalancer(
+        DataSegment proposalSegment,
+        List<ServerHolder> serverHolders,
+        Set<String> usedRacks
+    )
     {
-      return delegate.findNewSegmentHomeBalancer(proposalSegment, serverHolders);
+      return delegate.findNewSegmentHomeBalancer(proposalSegment, serverHolders, null);
     }
 
     @Override
-    public ServerHolder findNewSegmentHomeReplicator(DataSegment proposalSegment, List<ServerHolder> serverHolders)
+    public ServerHolder findNewSegmentHomeReplicator(
+        DataSegment proposalSegment,
+        List<ServerHolder> serverHolders,
+        Set<String> usedRacks
+    )
     {
-      return delegate.findNewSegmentHomeReplicator(proposalSegment, serverHolders);
+      return delegate.findNewSegmentHomeReplicator(proposalSegment, serverHolders, null);
     }
 
     @Override
@@ -639,7 +648,7 @@ public class BalanceSegmentsTest
             .andReturn(new BalancerSegmentHolder(druidServer2, segment2));
     EasyMock.expect(strategy.pickSegmentToMove(EasyMock.anyObject()))
             .andReturn(new BalancerSegmentHolder(druidServer1, segment1));
-    EasyMock.expect(strategy.findNewSegmentHomeBalancer(EasyMock.anyObject(), EasyMock.anyObject()))
+    EasyMock.expect(strategy.findNewSegmentHomeBalancer(EasyMock.anyObject(), EasyMock.anyObject(), null))
             .andReturn(new ServerHolder(druidServer3, peon3))
             .anyTimes();
     EasyMock.replay(strategy);

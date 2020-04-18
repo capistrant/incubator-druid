@@ -126,7 +126,9 @@ public class ServiceAnnouncingChatHandlerProvider implements ChatHandlerProvider
         node.getPlaintextPort(),
         node.getTlsPort(),
         node.isEnablePlaintextPort(),
-        node.isEnableTlsPort()
+        node.isEnableTlsPort(),
+        node.getRack(),
+        node.isEnableRackAwareness()
     );
   }
 }

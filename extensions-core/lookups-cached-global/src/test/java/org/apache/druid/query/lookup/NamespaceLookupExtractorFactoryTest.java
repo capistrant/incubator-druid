@@ -536,7 +536,7 @@ public class NamespaceLookupExtractorFactoryTest
                 JsonConfigProvider.bindInstance(
                     binder,
                     Key.get(DruidNode.class, Self.class),
-                    new DruidNode("test-inject", null, false, null, null, true, false)
+                    new DruidNode("test-inject", null, false, null, null, true, false, "invalid", false)
                 );
               }
             }

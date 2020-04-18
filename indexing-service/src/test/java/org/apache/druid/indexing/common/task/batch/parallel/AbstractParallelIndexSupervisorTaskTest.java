@@ -525,7 +525,7 @@ public class AbstractParallelIndexSupervisorTaskTest extends IngestionTestBase
   {
     return new TaskToolbox(
         null,
-        new DruidNode("druid/middlemanager", "localhost", false, 8091, null, true, false),
+        new DruidNode("druid/middlemanager", "localhost", false, 8091, null, true, false, "invalid", false),
         actionClient,
         null,
         new LocalDataSegmentPusher(

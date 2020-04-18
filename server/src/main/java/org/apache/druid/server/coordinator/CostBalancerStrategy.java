@@ -34,7 +34,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.HashMap;
 import java.util.NavigableSet;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -184,9 +186,13 @@ public class CostBalancerStrategy implements BalancerStrategy
   }
 
   @Override
-  public ServerHolder findNewSegmentHomeReplicator(DataSegment proposalSegment, List<ServerHolder> serverHolders)
+  public ServerHolder findNewSegmentHomeReplicator(
+      DataSegment proposalSegment,
+      List<ServerHolder> serverHolders,
+      Set<String> usedRacks
+  )
   {
-    ServerHolder holder = chooseBestServer(proposalSegment, serverHolders, false).rhs;
+    ServerHolder holder = chooseBestServer(proposalSegment, serverHolders, false, usedRacks).rhs;
     if (holder != null && !holder.isServingSegment(proposalSegment)) {
       return holder;
     }
@@ -195,9 +201,13 @@ public class CostBalancerStrategy implements BalancerStrategy
 
 
   @Override
-  public ServerHolder findNewSegmentHomeBalancer(DataSegment proposalSegment, List<ServerHolder> serverHolders)
+  public ServerHolder findNewSegmentHomeBalancer(
+      DataSegment proposalSegment,
+      List<ServerHolder> serverHolders,
+      Set<String> usedRacks
+  )
   {
-    return chooseBestServer(proposalSegment, serverHolders, true).rhs;
+    return chooseBestServer(proposalSegment, serverHolders, true, usedRacks).rhs;
   }
 
   static double computeJointSegmentsCost(final DataSegment segment, final Iterable<DataSegment> segmentSet)
@@ -217,11 +227,18 @@ public class CostBalancerStrategy implements BalancerStrategy
   }
 
   @Override
-  public Iterator<ServerHolder> pickServersToDrop(DataSegment toDrop, NavigableSet<ServerHolder> serverHolders)
+  public Iterator<ServerHolder> pickServersToDrop(
+      DataSegment toDrop,
+      NavigableSet<ServerHolder> serverHolders,
+      boolean rackAware
+  )
   {
     List<ListenableFuture<Pair<Double, ServerHolder>>> futures = new ArrayList<>();
 
+    HashMap<String, Integer> rackMap = new HashMap<>();
+
     for (final ServerHolder server : serverHolders) {
+      rackMap.put(server.getServer().getRack(), rackMap.getOrDefault(server.getServer().getRack(), 0) + 1);
       futures.add(
           exec.submit(
               () -> Pair.of(computeCost(toDrop, server, true), server)
@@ -231,13 +248,25 @@ public class CostBalancerStrategy implements BalancerStrategy
 
     final ListenableFuture<List<Pair<Double, ServerHolder>>> resultsFuture = Futures.allAsList(futures);
 
+    // This Comparator will compare Pairs by rack priority if the two servers are on different racks. And by cost if they are on same rack.
+    // Ideally, we would compare all servers who are NOT the cheapest on their rack by score and then all the servers who are the cheapest on their rack by their score and then ordered with the non cheapest servers before the cheapest servers
+    Comparator<Pair<Double, ServerHolder>> rackAwareCompare = (Pair<Double, ServerHolder> o1, Pair<Double, ServerHolder> o2) ->
+    {
+      if (rackMap.get(o1.rhs.getServer().getRack()).compareTo(rackMap.get(o2.rhs.getServer().getRack())) == 0) {
+          return o1.lhs.compareTo((o2.lhs)) * -1;
+        } else {
+          return rackMap.get(o1.rhs.getServer().getRack()).compareTo(rackMap.get(o2.rhs.getServer().getRack())) * -1;
+        }
+    };
+
     try {
       // results is an un-ordered list of a pair consisting of the 'cost' of a segment being on a server and the server
       List<Pair<Double, ServerHolder>> results = resultsFuture.get();
+
       return results.stream()
                     // Comparator.comapringDouble will order by lowest cost...
                     // reverse it because we want to drop from the highest cost servers first
-                    .sorted(Comparator.comparingDouble((Pair<Double, ServerHolder> o) -> o.lhs).reversed())
+                    .sorted(rackAwareCompare)
                     .map(x -> x.rhs).collect(Collectors.toList())
                     .iterator();
     }
@@ -349,18 +378,23 @@ public class CostBalancerStrategy implements BalancerStrategy
   }
 
   /**
-   * For assignment, we want to move to the lowest cost server that isn't already serving the segment.
+   * For assignment, we want to move to the lowest cost server that isn't already serving the segment. If usedRacks is not
+   * null, we have strong bias for choosing nodes who do not belong to a rack that currently serves the segment. A server with
+   * a non-infinite score will become bestServer even if it has a higher score than bestServer iff the candidate server is
+   * on a rack that doesn't serve the segment while all servers in bestServer are on racks that serve he segment.
    *
    * @param proposalSegment A DataSegment that we are proposing to move.
    * @param serverHolders   An iterable of ServerHolders for a particular tier.
    *
+   * @param usedRacks
    * @return A ServerHolder with the new home for a segment.
    */
 
   protected Pair<Double, ServerHolder> chooseBestServer(
       final DataSegment proposalSegment,
       final Iterable<ServerHolder> serverHolders,
-      final boolean includeCurrentServer
+      final boolean includeCurrentServer,
+      Set<String> usedRacks
   )
   {
     Pair<Double, ServerHolder> bestServer = Pair.of(Double.POSITIVE_INFINITY, null);
@@ -380,12 +414,41 @@ public class CostBalancerStrategy implements BalancerStrategy
     bestServers.add(bestServer);
     try {
       for (Pair<Double, ServerHolder> server : resultsFuture.get()) {
-        if (server.lhs <= bestServers.get(0).lhs) {
-          if (server.lhs < bestServers.get(0).lhs) {
-            bestServers.clear();
-          }
-          bestServers.add(server);
+        if (server.lhs == Double.POSITIVE_INFINITY || server.rhs == null) {
+          // We never have any desire for a node that shouldn't take a segment to be chosen in the random selection in the case the top score is Double.POSITIVE_INFINITY
+          continue;
         }
+        if (bestServers.get(0).rhs == null) {
+          // We know our server beats the placeholder null server if its score beats Double.POSITIVE_INFINITY
+          bestServers.clear();
+        } else {
+          // If we are not rack aware, these will be false and algorithm will function with no bias towards unoccuppied racks
+          boolean isCandidateServingSegment = usedRacks != null && server.rhs.isServingSegment(proposalSegment);
+          boolean isCandidateOnUsedRack = usedRacks != null && usedRacks.contains(server.rhs.getServer().getRack());
+          boolean areBestServersOnUsedRack = usedRacks != null && usedRacks.contains(bestServers.get(0).rhs.getServer().getRack());
+          if (!isCandidateOnUsedRack && areBestServersOnUsedRack) {
+            // If bestServers are on a used rack and the candidate server is not. The candidate becomes the new best server regardless of score because rack > score when rack aware.
+            bestServers.clear();
+          } else if (isCandidateOnUsedRack && !isCandidateServingSegment && !areBestServersOnUsedRack) {
+            // If candidate server is on a used rack but the bestServers are not, the candidate is thrown out regardless of score. Once again, rack > score when rack aware.
+            continue;
+          } else if (isCandidateOnUsedRack && isCandidateServingSegment && areBestServersOnUsedRack) {
+            // If candidate server is serving the segment and bestServers are on racks serving the segment. Choosing one of them over candidate server would decrease rack distribution.
+            bestServers.clear();
+          } else {
+            // This is the code path hit if we are not rack aware or the candidate server and bestServers share the same rack status (either both on used rack or both not on used rack)
+            if (server.lhs <= bestServers.get(0).lhs) {
+              if (server.lhs < bestServers.get(0).lhs) {
+                // Candidate server has a better score compared to bestServers and becomes the sole best server
+                bestServers.clear();
+              }
+            } else {
+              // Candidate Server has higher score than bestServers so we leave bestServers be and move to next candidate.
+              continue;
+            }
+          }
+        }
+        bestServers.add(server);
       }
 
       // Randomly choose a server from the best servers

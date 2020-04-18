@@ -107,6 +107,11 @@ public class ImmutableDruidServer
     return metadata.getPriority();
   }
 
+  public String getRack()
+  {
+    return metadata.getRack();
+  }
+
   @Nullable
   public DataSegment getSegment(SegmentId segmentId)
   {

@@ -689,6 +689,7 @@ public class DruidCoordinator
                 .withCompactionConfig(getCompactionConfig())
                 .withEmitter(emitter)
                 .withBalancerStrategy(balancerStrategy)
+                .withRackAwareBalancing(self.isEnableRackAwareness())
                 .build();
 
         boolean coordinationPaused = getDynamicConfigs().getPauseCoordination();

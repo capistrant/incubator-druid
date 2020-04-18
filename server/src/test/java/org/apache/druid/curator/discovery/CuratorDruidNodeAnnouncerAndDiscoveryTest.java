@@ -82,25 +82,25 @@ public class CuratorDruidNodeAnnouncerAndDiscoveryTest extends CuratorTestBase
     );
 
     DiscoveryDruidNode coordinatorNode1 = new DiscoveryDruidNode(
-        new DruidNode("s1", "h1", false, 8080, null, true, false),
+        new DruidNode("s1", "h1", false, 8080, null, true, false, "invalid", false),
         NodeRole.COORDINATOR,
         ImmutableMap.of()
     );
 
     DiscoveryDruidNode coordinatorNode2 = new DiscoveryDruidNode(
-        new DruidNode("s2", "h2", false, 8080, null, true, false),
+        new DruidNode("s2", "h2", false, 8080, null, true, false, "invalid", false),
         NodeRole.COORDINATOR,
         ImmutableMap.of()
     );
 
     DiscoveryDruidNode overlordNode1 = new DiscoveryDruidNode(
-        new DruidNode("s3", "h3", false, 8080, null, true, false),
+        new DruidNode("s3", "h3", false, 8080, null, true, false, "invalid", false),
         NodeRole.OVERLORD,
         ImmutableMap.of()
     );
 
     DiscoveryDruidNode overlordNode2 = new DiscoveryDruidNode(
-        new DruidNode("s4", "h4", false, 8080, null, true, false),
+        new DruidNode("s4", "h4", false, 8080, null, true, false, "invalid", false),
         NodeRole.OVERLORD,
         ImmutableMap.of()
     );
