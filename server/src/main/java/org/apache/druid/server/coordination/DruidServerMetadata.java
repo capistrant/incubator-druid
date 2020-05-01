@@ -49,7 +49,7 @@ public class DruidServerMetadata
       @JsonProperty("type") ServerType type,
       @JsonProperty("tier") String tier,
       @JsonProperty("priority") int priority,
-      @JsonProperty String rack
+      @JsonProperty("rack") String rack
   )
   {
     this.name = Preconditions.checkNotNull(name);

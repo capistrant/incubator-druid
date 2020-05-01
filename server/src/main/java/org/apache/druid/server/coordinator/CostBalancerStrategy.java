@@ -32,9 +32,9 @@ import org.joda.time.Interval;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.HashMap;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
@@ -235,10 +235,13 @@ public class CostBalancerStrategy implements BalancerStrategy
   {
     List<ListenableFuture<Pair<Double, ServerHolder>>> futures = new ArrayList<>();
 
-    HashMap<String, Integer> rackMap = new HashMap<>();
 
+    HashMap<String, Integer> rackMap = new HashMap<>();
     for (final ServerHolder server : serverHolders) {
-      rackMap.put(server.getServer().getRack(), rackMap.getOrDefault(server.getServer().getRack(), 0) + 1);
+      if (rackAware) {
+        // Populate hashmap for tracking rack => count for segments occurances on a given rack.
+        rackMap.put(server.getServer().getRack(), rackMap.getOrDefault(server.getServer().getRack(), 0) + 1);
+      }
       futures.add(
           exec.submit(
               () -> Pair.of(computeCost(toDrop, server, true), server)
@@ -246,18 +249,23 @@ public class CostBalancerStrategy implements BalancerStrategy
       );
     }
 
-    final ListenableFuture<List<Pair<Double, ServerHolder>>> resultsFuture = Futures.allAsList(futures);
-
-    // This Comparator will compare Pairs by rack priority if the two servers are on different racks. And by cost if they are on same rack.
-    // Ideally, we would compare all servers who are NOT the cheapest on their rack by score and then all the servers who are the cheapest on their rack by their score and then ordered with the non cheapest servers before the cheapest servers
-    Comparator<Pair<Double, ServerHolder>> rackAwareCompare = (Pair<Double, ServerHolder> o1, Pair<Double, ServerHolder> o2) ->
-    {
-      if (rackMap.get(o1.rhs.getServer().getRack()).compareTo(rackMap.get(o2.rhs.getServer().getRack())) == 0) {
+    // Create Comparator for sorting servers depending on if we are rack aware or not
+    Comparator<Pair<Double, ServerHolder>> balancerComparator;
+    if (!rackAware) {
+      balancerComparator = Comparator.comparingDouble((Pair<Double, ServerHolder> o) -> o.lhs);
+    } else {
+      // This Comparator will compare Pairs by rack priority if the two servers are on different racks. And by cost if they are on same rack.
+      // Ideally, we would compare all servers who are NOT the cheapest on their rack by score and then all the servers who are the cheapest on their rack by their score and then ordered with the non cheapest servers before the cheapest servers
+      balancerComparator = (Pair<Double, ServerHolder> o1, Pair<Double, ServerHolder> o2) -> {
+        if (rackMap.get(o1.rhs.getServer().getRack()).compareTo(rackMap.get(o2.rhs.getServer().getRack())) == 0) {
           return o1.lhs.compareTo((o2.lhs)) * -1;
         } else {
           return rackMap.get(o1.rhs.getServer().getRack()).compareTo(rackMap.get(o2.rhs.getServer().getRack())) * -1;
         }
-    };
+      };
+    }
+
+    final ListenableFuture<List<Pair<Double, ServerHolder>>> resultsFuture = Futures.allAsList(futures);
 
     try {
       // results is an un-ordered list of a pair consisting of the 'cost' of a segment being on a server and the server
@@ -266,7 +274,7 @@ public class CostBalancerStrategy implements BalancerStrategy
       return results.stream()
                     // Comparator.comapringDouble will order by lowest cost...
                     // reverse it because we want to drop from the highest cost servers first
-                    .sorted(rackAwareCompare)
+                    .sorted(balancerComparator)
                     .map(x -> x.rhs).collect(Collectors.toList())
                     .iterator();
     }

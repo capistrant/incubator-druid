@@ -173,7 +173,7 @@ public class DruidNode
       throw new IAE("At least one of the druid.enablePlaintextPort or druid.enableTlsPort needs to be true.");
     }
 
-    if (enableRackAwareness && (rack == null || rack.equals("invalid"))) {
+    if (enableRackAwareness && (rack == null || "invalid".equals(rack))) {
       throw new IAE("druid.rack needs to be set if druid.enableRackAwareness is true.");
     }
 

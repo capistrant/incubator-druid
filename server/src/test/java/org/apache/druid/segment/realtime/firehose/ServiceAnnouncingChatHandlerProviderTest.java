@@ -94,6 +94,8 @@ public class ServiceAnnouncingChatHandlerProviderTest extends EasyMockSupport
     EasyMock.expect(node.isEnablePlaintextPort()).andReturn(true);
     EasyMock.expect(node.isEnableTlsPort()).andReturn(false);
     EasyMock.expect(node.getTlsPort()).andReturn(-1);
+    EasyMock.expect(node.getRack()).andReturn(("rack"));
+    EasyMock.expect(node.isEnableRackAwareness()).andReturn(false);
     serviceAnnouncer.announce(EasyMock.capture(captured));
     replayAll();
 
@@ -112,6 +114,8 @@ public class ServiceAnnouncingChatHandlerProviderTest extends EasyMockSupport
     Assert.assertEquals(TEST_PORT, param.getPlaintextPort());
     Assert.assertEquals(-1, param.getTlsPort());
     Assert.assertEquals(null, param.getHostAndTlsPort());
+    Assert.assertEquals("rack", param.getRack());
+    Assert.assertEquals(false, param.isEnableRackAwareness());
     Assert.assertTrue("chatHandler did not register", chatHandlerProvider.get(TEST_SERVICE_NAME).isPresent());
     Assert.assertEquals(testChatHandler, chatHandlerProvider.get(TEST_SERVICE_NAME).get());
 
@@ -123,6 +127,8 @@ public class ServiceAnnouncingChatHandlerProviderTest extends EasyMockSupport
     EasyMock.expect(node.isEnablePlaintextPort()).andReturn(true);
     EasyMock.expect(node.getTlsPort()).andReturn(-1);
     EasyMock.expect(node.isEnableTlsPort()).andReturn(false);
+    EasyMock.expect(node.getRack()).andReturn("rack");
+    EasyMock.expect(node.isEnableRackAwareness()).andReturn(false);
     serviceAnnouncer.unannounce(EasyMock.capture(captured));
     replayAll();
 
@@ -135,6 +141,8 @@ public class ServiceAnnouncingChatHandlerProviderTest extends EasyMockSupport
     Assert.assertEquals(TEST_PORT, param.getPlaintextPort());
     Assert.assertEquals(-1, param.getTlsPort());
     Assert.assertEquals(null, param.getHostAndTlsPort());
+    Assert.assertEquals("rack", param.getRack());
+    Assert.assertEquals(false, param.isEnableRackAwareness());
     Assert.assertFalse("chatHandler did not deregister", chatHandlerProvider.get(TEST_SERVICE_NAME).isPresent());
   }
 }

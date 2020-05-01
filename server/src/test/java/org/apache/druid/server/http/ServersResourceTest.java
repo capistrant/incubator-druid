@@ -118,7 +118,7 @@ public class ServersResourceTest
   {
     DruidServer server = new DruidServer("dummy", "dummyHost", null, 1234, ServerType.HISTORICAL, "dummyTier", 1, "rack");
     String serverJson = objectMapper.writeValueAsString(server);
-    String expected = "{\"name\":\"dummy\",\"host\":\"dummyHost\",\"hostAndTlsPort\":null,\"maxSize\":1234,\"type\":\"historical\",\"tier\":\"dummyTier\",\"priority\":1}";
+    String expected = "{\"name\":\"dummy\",\"host\":\"dummyHost\",\"hostAndTlsPort\":null,\"maxSize\":1234,\"type\":\"historical\",\"tier\":\"dummyTier\",\"priority\":1,\"rack\":\"rack\"}";
     Assert.assertEquals(expected, serverJson);
     DruidServer deserializedServer = objectMapper.readValue(serverJson, DruidServer.class);
     Assert.assertEquals(server, deserializedServer);
@@ -138,7 +138,7 @@ public class ServersResourceTest
         "rack"
     );
     String metadataJson = objectMapper.writeValueAsString(metadata);
-    String expected = "{\"name\":\"dummy\",\"host\":\"host\",\"hostAndTlsPort\":null,\"maxSize\":1234,\"type\":\"historical\",\"tier\":\"tier\",\"priority\":1}";
+    String expected = "{\"name\":\"dummy\",\"host\":\"host\",\"hostAndTlsPort\":null,\"maxSize\":1234,\"type\":\"historical\",\"tier\":\"tier\",\"priority\":1,\"rack\":\"rack\"}";
     Assert.assertEquals(expected, metadataJson);
     DruidServerMetadata deserializedMetadata = objectMapper.readValue(metadataJson, DruidServerMetadata.class);
     Assert.assertEquals(metadata, deserializedMetadata);
@@ -155,7 +155,7 @@ public class ServersResourceTest
     );
 
     Assert.assertEquals(metadata, objectMapper.readValue(
-        "{\"name\":\"host:123\",\"maxSize\":0,\"type\":\"HISTORICAL\",\"tier\":\"t1\",\"priority\":0,\"host\":\"host:123\"}",
+        "{\"name\":\"host:123\",\"maxSize\":0,\"type\":\"HISTORICAL\",\"tier\":\"t1\",\"priority\":0,\"host\":\"host:123\",\"rack\": \"rack\"}",
         DruidServerMetadata.class
     ));
 
@@ -167,10 +167,10 @@ public class ServersResourceTest
         ServerType.HISTORICAL,
         "t1",
         0,
-        "rack"
+        "superRack"
     );
     Assert.assertEquals(metadata, objectMapper.readValue(
-        "{\"name\":\"host:123\",\"maxSize\":0,\"type\":\"HISTORICAL\",\"tier\":\"t1\",\"priority\":0,\"host\":\"host:123\",\"hostAndTlsPort\":\"host:214\"}",
+        "{\"rack\": \"superRack\",\"name\":\"host:123\",\"maxSize\":0,\"type\":\"HISTORICAL\",\"tier\":\"t1\",\"priority\":0,\"host\":\"host:123\",\"hostAndTlsPort\":\"host:214\"}",
         DruidServerMetadata.class
     ));
     Assert.assertEquals(metadata, objectMapper.readValue(
