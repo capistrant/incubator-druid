@@ -43,6 +43,9 @@ public class DruidServerConfig
   private String tier = DruidServer.DEFAULT_TIER;
 
   @JsonProperty
+  private String guild = DruidServer.DEFAULT_GUILD;
+
+  @JsonProperty
   private int priority = DruidServer.DEFAULT_PRIORITY;
 
   @JsonProperty
@@ -73,6 +76,8 @@ public class DruidServerConfig
   {
     return tier;
   }
+
+  public String getGuild() { return guild; }
 
   public int getPriority()
   {

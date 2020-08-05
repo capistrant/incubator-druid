@@ -121,7 +121,8 @@ public class BatchDataSegmentAnnouncerTest
             Long.MAX_VALUE,
             ServerType.HISTORICAL,
             "tier",
-            0
+            0,
+            "_default_guild"
         ),
         new BatchDataSegmentAnnouncerConfig()
         {

@@ -296,7 +296,8 @@ public class CuratorDruidCoordinatorTest extends CuratorTestBase
         10000000L,
         ServerType.HISTORICAL,
         "default_tier",
-        0
+        0,
+        "_default_guild"
     );
 
     DruidServer dest = new DruidServer(
@@ -306,7 +307,8 @@ public class CuratorDruidCoordinatorTest extends CuratorTestBase
         10000000L,
         ServerType.HISTORICAL,
         "default_tier",
-        0
+        0,
+        "_default_guild"
     );
 
     setupZNodeForServer(source, zkPathsConfig, jsonMapper);

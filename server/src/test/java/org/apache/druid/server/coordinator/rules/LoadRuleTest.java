@@ -141,8 +141,16 @@ public class LoadRuleTest
         .addTier(
             "hot",
             new ServerHolder(
-                new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 1)
-                    .toImmutableDruidServer(),
+                new DruidServer(
+                    "serverHot",
+                    "hostHot",
+                    null,
+                    1000,
+                    ServerType.HISTORICAL,
+                    "hot",
+                    1,
+                    DruidServer.DEFAULT_GUILD
+                ).toImmutableDruidServer(),
                 mockPeon
             )
         )
@@ -156,7 +164,8 @@ public class LoadRuleTest
                     1000,
                     ServerType.HISTORICAL,
                     DruidServer.DEFAULT_TIER,
-                    0
+                    0,
+                    DruidServer.DEFAULT_GUILD
                 ).toImmutableDruidServer(),
                 mockPeon
             )
@@ -208,9 +217,27 @@ public class LoadRuleTest
     EasyMock.replay(throttler, mockPeon, mockBalancerStrategy);
 
     ImmutableDruidServer server1 =
-        new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 1).toImmutableDruidServer();
+        new DruidServer(
+            "serverHot",
+            "hostHot",
+            null,
+            1000,
+            ServerType.HISTORICAL,
+            "hot",
+            1,
+            DruidServer.DEFAULT_GUILD
+        ).toImmutableDruidServer();
     ImmutableDruidServer server2 =
-        new DruidServer("serverHot2", "hostHot2", null, 1000, ServerType.HISTORICAL, "hot", 1).toImmutableDruidServer();
+        new DruidServer(
+            "serverHot2",
+            "hostHot2",
+            null,
+            1000,
+            ServerType.HISTORICAL,
+            "hot",
+            1,
+            DruidServer.DEFAULT_GUILD
+        ).toImmutableDruidServer();
     DruidCluster druidCluster = DruidClusterBuilder
         .newBuilder()
         .addTier("hot", new ServerHolder(server1, mockPeon), new ServerHolder(server2, mockPeon))
@@ -269,21 +296,45 @@ public class LoadRuleTest
         .addTier(
             "tier1",
             new ServerHolder(
-                new DruidServer("server1", "host1", null, 1000, ServerType.HISTORICAL, "tier1", 0)
-                    .toImmutableDruidServer(),
+                new DruidServer(
+                    "server1",
+                    "host1",
+                    null,
+                    1000,
+                    ServerType.HISTORICAL,
+                    "tier1",
+                    0,
+                    DruidServer.DEFAULT_GUILD
+                ).toImmutableDruidServer(),
                 mockPeon1
             )
         )
         .addTier(
             "tier2",
             new ServerHolder(
-                new DruidServer("server2", "host2", null, 1000, ServerType.HISTORICAL, "tier2", 1)
-                    .toImmutableDruidServer(),
+                new DruidServer(
+                    "server2",
+                    "host2",
+                    null,
+                    1000,
+                    ServerType.HISTORICAL,
+                    "tier2",
+                    1,
+                    DruidServer.DEFAULT_GUILD
+                ).toImmutableDruidServer(),
                 mockPeon2
             ),
             new ServerHolder(
-                new DruidServer("server3", "host3", null, 1000, ServerType.HISTORICAL, "tier2", 1)
-                    .toImmutableDruidServer(),
+                new DruidServer(
+                    "server3",
+                    "host3",
+                    null,
+                    1000,
+                    ServerType.HISTORICAL,
+                    "tier2",
+                    1,
+                    DruidServer.DEFAULT_GUILD
+                ).toImmutableDruidServer(),
                 mockPeon2
             )
         )
@@ -317,7 +368,16 @@ public class LoadRuleTest
 
     final DataSegment segment = createDataSegment("foo");
 
-    DruidServer server1 = new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 0);
+    DruidServer server1 = new DruidServer(
+        "serverHot",
+        "hostHot",
+        null,
+        1000,
+        ServerType.HISTORICAL,
+        "hot",
+        0,
+        DruidServer.DEFAULT_GUILD
+    );
     server1.addDataSegment(segment);
     DruidServer server2 = new DruidServer(
         "serverNorm",
@@ -326,7 +386,8 @@ public class LoadRuleTest
         1000,
         ServerType.HISTORICAL,
         DruidServer.DEFAULT_TIER,
-        0
+        0,
+        DruidServer.DEFAULT_GUILD
     );
     server2.addDataSegment(segment);
     DruidServer server3 = new DruidServer(
@@ -336,7 +397,8 @@ public class LoadRuleTest
         10,
         ServerType.HISTORICAL,
         DruidServer.DEFAULT_TIER,
-        0
+        0,
+        DruidServer.DEFAULT_GUILD
     );
     DruidCluster druidCluster = DruidClusterBuilder
         .newBuilder()
@@ -376,8 +438,16 @@ public class LoadRuleTest
         .addTier(
             "hot",
             new ServerHolder(
-                new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 0)
-                    .toImmutableDruidServer(),
+                new DruidServer(
+                    "serverHot",
+                    "hostHot",
+                    null,
+                    1000,
+                    ServerType.HISTORICAL,
+                    "hot",
+                    0,
+                    DruidServer.DEFAULT_GUILD
+                ).toImmutableDruidServer(),
                 mockPeon
             )
         )
@@ -418,8 +488,26 @@ public class LoadRuleTest
 
     final DataSegment segment = createDataSegment("foo");
 
-    DruidServer server1 = new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 0);
-    DruidServer server2 = new DruidServer("serverHot2", "hostHot2", null, 1000, ServerType.HISTORICAL, "hot", 0);
+    DruidServer server1 = new DruidServer(
+        "serverHot",
+        "hostHot",
+        null,
+        1000,
+        ServerType.HISTORICAL,
+        "hot",
+        0,
+        DruidServer.DEFAULT_GUILD
+    );
+    DruidServer server2 = new DruidServer(
+        "serverHot2",
+        "hostHot2",
+        null,
+        1000,
+        ServerType.HISTORICAL,
+        "hot",
+        0,
+        DruidServer.DEFAULT_GUILD
+    );
     server1.addDataSegment(segment);
     server2.addDataSegment(segment);
 
@@ -457,8 +545,16 @@ public class LoadRuleTest
         .addTier(
             "hot",
             new ServerHolder(
-                new DruidServer("serverHot", "hostHot", null, 1000, ServerType.HISTORICAL, "hot", 0)
-                    .toImmutableDruidServer(),
+                new DruidServer(
+                    "serverHot",
+                    "hostHot",
+                    null,
+                    1000,
+                    ServerType.HISTORICAL,
+                    "hot",
+                    0,
+                    DruidServer.DEFAULT_GUILD
+                ).toImmutableDruidServer(),
                 peon
             )
         )
@@ -749,7 +845,8 @@ public class LoadRuleTest
         1000,
         ServerType.HISTORICAL,
         tier,
-        0
+        0,
+        DruidServer.DEFAULT_GUILD
     );
   }
 

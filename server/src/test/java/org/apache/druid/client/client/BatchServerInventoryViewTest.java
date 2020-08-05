@@ -130,7 +130,8 @@ public class BatchServerInventoryViewTest
         Long.MAX_VALUE,
         ServerType.HISTORICAL,
         "tier",
-        0
+        0,
+        "_default_guild"
     );
 
     ZkPathsConfig zkPathsConfig = new ZkPathsConfig()
@@ -455,7 +456,8 @@ public class BatchServerInventoryViewTest
                           Long.MAX_VALUE,
                           ServerType.HISTORICAL,
                           "tier",
-                          0
+                          0,
+                          "_default_guild"
                       ),
                       new BatchDataSegmentAnnouncerConfig()
                       {

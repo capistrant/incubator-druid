@@ -40,11 +40,13 @@ import org.apache.druid.timeline.SegmentId;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -61,6 +63,8 @@ public abstract class LoadRule implements Rule
 
   private final Object2IntMap<String> targetReplicants = new Object2IntOpenHashMap<>();
   private final Object2IntMap<String> currentReplicants = new Object2IntOpenHashMap<>();
+  private final Object2IntMap<String> guildReplicants = new Object2IntOpenHashMap<>();
+  private final Set<String> usedGuildSet = new HashSet<>();
 
   // Cache to hold unused results from strategy call in assignPrimary
   private final Map<String, ServerHolder> strategyCache = new HashMap<>();
@@ -76,6 +80,11 @@ public abstract class LoadRule implements Rule
       // get the "snapshots" of targetReplicants and currentReplicants for assignments.
       targetReplicants.putAll(getTieredReplicants());
       currentReplicants.putAll(params.getSegmentReplicantLookup().getClusterTiers(segment.getId()));
+
+      // get the "snapshot" of guildReplicants for guild aware assignment.
+      guildReplicants.putAll(params.getSegmentReplicantLookup().getGuildMapForSegment(segment.getId()));
+      // Get Guilds serving segment
+      usedGuildSet.addAll(params.getSegmentReplicantLookup().getGuildSetForSegment(segment.getId()));
 
       final CoordinatorStats stats = new CoordinatorStats();
       assign(params, segment, stats);
@@ -299,6 +308,13 @@ public abstract class LoadRule implements Rule
       return 0;
     }
 
+    // We say "suspected unused guild" because if we are assigning more than one replica in the below loop, anything beyond the first replica might go to a used guild.
+    String noUnusedGuildAvailability = StringUtils.format(
+        "No available [%s] servers or node capacity to assign segment[%s] on a suspected unused guild! Trying used guilds next.",
+        tier,
+        segment.getId()
+    );
+
     String noAvailability = StringUtils.format(
         "No available [%s] servers or node capacity to assign segment[%s]! Expected Replicants[%d]",
         tier,
@@ -307,11 +323,17 @@ public abstract class LoadRule implements Rule
     );
 
     final List<ServerHolder> holders = getFilteredHolders(tier, params.getDruidCluster(), predicate);
+
     // if no holders available for assignment
     if (holders.isEmpty()) {
       log.warn(noAvailability);
       return 0;
     }
+
+    // Split the Holders depending on if they are a part of guild that is already serving the DataSegment
+    Map<Boolean, List<ServerHolder>> partitions = holders.stream().collect(Collectors.partitioningBy(s -> usedGuildSet.contains(s.getServer().getGuild())));
+    final List<ServerHolder> usedGuildHolders = partitions.get(true);
+    final List<ServerHolder> unusedGuildHolders = partitions.get(false);
 
     final ReplicationThrottler throttler = params.getReplicationManager();
     for (int numAssigned = 0; numAssigned < numToAssign; numAssigned++) {
@@ -320,18 +342,36 @@ public abstract class LoadRule implements Rule
         return numAssigned;
       }
 
-      // Retrieves from cache if available
       ServerHolder holder = strategyCache.remove(tier);
-      // Does strategy call if not in cache
+
+      // We don't want to used the cached holder if it is on a used guild. We defer to using it only if we check used guilds later.
+      if (usedGuildSet.contains(holder.getServer().getGuild())) {
+        log.debug("putting cached entry back in cache because it is on a used guild. We will use it if we have to try used guilds");
+        strategyCache.put(tier, holder);
+        holder = null;
+      }
+
+      // Try to find holder on unused Guild
       if (holder == null) {
-        holder = params.getBalancerStrategy().findNewSegmentHomeReplicator(segment, holders);
+        holder = params.getBalancerStrategy().findNewSegmentHomeReplicator(segment, unusedGuildHolders);
+      }
+
+      if (holder == null) {
+        log.warn(noUnusedGuildAvailability);
+        holder = strategyCache.get(tier);
+        if (holder == null) {
+          holder = params.getBalancerStrategy().findNewSegmentHomeReplicator(segment, usedGuildHolders);
+        }
       }
 
       if (holder == null) {
         log.warn(noAvailability);
         return numAssigned;
       }
-      holders.remove(holder);
+
+      // We remove the chosen holder from the unused guild list.
+      // For now we have chosen not to remove the holders that belong to the same guild as the chosen server. We achieved our goal of at least on replica on a different guild so the compute to try to ensure even more guild distribution for further replicas is deemed unnecessary at this time.
+      unusedGuildHolders.remove(holder);
 
       final SegmentId segmentId = segment.getId();
       final String holderHost = holder.getServer().getHost();
@@ -378,7 +418,7 @@ public abstract class LoadRule implements Rule
         final int currentReplicantsInTier = entry.getIntValue();
         final int numToDrop = currentReplicantsInTier - targetReplicants.getOrDefault(tier, 0);
         if (numToDrop > 0) {
-          numDropped = dropForTier(numToDrop, holders, segment, params.getBalancerStrategy());
+          numDropped = dropForTier(numToDrop, holders, segment, params.getBalancerStrategy(), guildReplicants);
         } else {
           numDropped = 0;
         }
@@ -408,20 +448,27 @@ public abstract class LoadRule implements Rule
       final int numToDrop,
       final NavigableSet<ServerHolder> holdersInTier,
       final DataSegment segment,
-      final BalancerStrategy balancerStrategy
+      final BalancerStrategy balancerStrategy,
+      Map<String, Integer> guildReplicants
   )
   {
-    Map<Boolean, TreeSet<ServerHolder>> holders = holdersInTier.stream()
-                                                               .filter(s -> s.isServingSegment(segment))
-                                                               .collect(Collectors.partitioningBy(
-                                                                   ServerHolder::isDecommissioning,
-                                                                   Collectors.toCollection(TreeSet::new)
-                                                               ));
-    TreeSet<ServerHolder> decommissioningServers = holders.get(true);
-    TreeSet<ServerHolder> activeServers = holders.get(false);
+    // We need to split the decomissioning servers from the active servers and then further split the active servers into servers whose guild hosts more than 1 replica of a segment vs guilds who serve only 1 replica of a segment
+    Map<Boolean, HashSet<ServerHolder>> partitions = holdersInTier.stream().filter(s -> s.isServingSegment(segment)).collect(Collectors.partitioningBy(ServerHolder::isDecommissioning, Collectors.toCollection(HashSet::new)));
+    TreeSet<ServerHolder> decommissioningServers = new TreeSet<>(partitions.get(true));
+    Predicate<ServerHolder> guildReplicationFactorPredicate = s -> {
+      int guildReplicantCount = (guildReplicants.get(s.getServer().getGuild()) == null) ? 0 : guildReplicants.get(s.getServer().getGuild());
+      return guildReplicantCount > 1;
+    };
+    Map<Boolean, TreeSet<ServerHolder>> guildPartitions = partitions.get(false).stream().collect(Collectors.partitioningBy(guildReplicationFactorPredicate, Collectors.toCollection(TreeSet::new)));
+    TreeSet<ServerHolder> overPopulatedGuildSet = guildPartitions.get(true);
+    TreeSet<ServerHolder> underPopulatedGuildSet = guildPartitions.get(false);
+
     int left = dropSegmentFromServers(balancerStrategy, segment, decommissioningServers, numToDrop);
     if (left > 0) {
-      left = dropSegmentFromServers(balancerStrategy, segment, activeServers, left);
+      left = dropSegmentFromServers(balancerStrategy, segment, overPopulatedGuildSet, left);
+    }
+    if (left > 0) {
+      left = dropSegmentFromServers(balancerStrategy, segment, underPopulatedGuildSet, left);
     }
     if (left != 0) {
       log.warn("I have no servers serving [%s]?", segment.getId());
