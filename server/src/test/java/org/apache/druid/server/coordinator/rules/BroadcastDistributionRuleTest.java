@@ -110,7 +110,8 @@ public class BroadcastDistributionRuleTest
             1000,
             ServerType.HISTORICAL,
             "hot",
-            0
+            0,
+            DruidServer.DEFAULT_GUILD
         ).addDataSegment(smallSegment)
          .toImmutableDruidServer(),
         new LoadQueuePeonTester()
@@ -125,7 +126,8 @@ public class BroadcastDistributionRuleTest
                 1000,
                 ServerType.HISTORICAL,
                 "hot",
-                0
+                0,
+                DruidServer.DEFAULT_GUILD
             ).addDataSegment(largeSegments.get(0))
              .toImmutableDruidServer(),
             new LoadQueuePeonTester()
@@ -140,7 +142,8 @@ public class BroadcastDistributionRuleTest
                 1000,
                 ServerType.HISTORICAL,
                 DruidServer.DEFAULT_TIER,
-                0
+                0,
+                DruidServer.DEFAULT_GUILD
             ).addDataSegment(largeSegments.get(1))
              .toImmutableDruidServer(),
             new LoadQueuePeonTester()
@@ -155,7 +158,8 @@ public class BroadcastDistributionRuleTest
                 100,
                 ServerType.HISTORICAL,
                 DruidServer.DEFAULT_TIER,
-                0
+                0,
+                DruidServer.DEFAULT_GUILD
             ).addDataSegment(largeSegments.get(2))
              .toImmutableDruidServer(),
             new LoadQueuePeonTester()
@@ -171,7 +175,8 @@ public class BroadcastDistributionRuleTest
                 1000,
                 ServerType.HISTORICAL,
                 "hot",
-                0
+                0,
+                DruidServer.DEFAULT_GUILD
             ).addDataSegment(largeSegments2.get(0))
              .toImmutableDruidServer(),
             new LoadQueuePeonTester()
@@ -186,7 +191,8 @@ public class BroadcastDistributionRuleTest
                 100,
                 ServerType.HISTORICAL,
                 DruidServer.DEFAULT_TIER,
-                0
+                0,
+                DruidServer.DEFAULT_GUILD
             ).addDataSegment(largeSegments2.get(1))
              .toImmutableDruidServer(),
             new LoadQueuePeonTester()
@@ -201,7 +207,8 @@ public class BroadcastDistributionRuleTest
             100,
             ServerType.HISTORICAL,
             "tier1",
-            0
+            0,
+            DruidServer.DEFAULT_GUILD
         ).addDataSegment(largeSegments.get(0))
          .toImmutableDruidServer(),
         new LoadQueuePeonTester()
@@ -215,7 +222,8 @@ public class BroadcastDistributionRuleTest
             100,
             ServerType.HISTORICAL,
             "tier1",
-            0
+            0,
+            DruidServer.DEFAULT_GUILD
         ).addDataSegment(smallSegment)
          .toImmutableDruidServer(),
         new LoadQueuePeonTester(),
@@ -230,7 +238,8 @@ public class BroadcastDistributionRuleTest
             100,
             ServerType.HISTORICAL,
             "tier1",
-            0
+            0,
+            DruidServer.DEFAULT_GUILD
         ).addDataSegment(largeSegments.get(1))
          .toImmutableDruidServer(),
         new LoadQueuePeonTester(),

@@ -36,7 +36,8 @@ public class DataNodeServiceTest
         "tier",
         100,
         ServerType.HISTORICAL,
-        1
+        1,
+        "_default_tier"
     );
 
     ObjectMapper mapper = TestHelper.makeJsonMapper();

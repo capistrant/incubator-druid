@@ -66,7 +66,8 @@ public class ZkCoordinatorTest extends CuratorTestBase
       0,
       ServerType.HISTORICAL,
       "normal",
-      0
+      0,
+      "_default_guild"
   );
   private final ZkPathsConfig zkPaths = new ZkPathsConfig()
   {

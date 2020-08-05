@@ -28,7 +28,9 @@ import org.apache.druid.timeline.DataSegment;
 import org.apache.druid.timeline.SegmentId;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 
 /**
@@ -40,12 +42,18 @@ public class SegmentReplicantLookup
   {
     final Table<SegmentId, String, Integer> segmentsInCluster = HashBasedTable.create();
     final Table<SegmentId, String, Integer> loadingSegments = HashBasedTable.create();
+    final Table<SegmentId, String, Integer> historicalGuildDistribution = HashBasedTable.create();
 
     for (SortedSet<ServerHolder> serversByType : cluster.getSortedHistoricalsByTier()) {
       for (ServerHolder serverHolder : serversByType) {
         ImmutableDruidServer server = serverHolder.getServer();
 
         for (DataSegment segment : server.iterateAllSegments()) {
+          Integer numReplicantsOnRack = historicalGuildDistribution.get(segment.getId(), server.getGuild());
+          if (numReplicantsOnRack == null) {
+            numReplicantsOnRack = 0;
+          }
+          historicalGuildDistribution.put(segment.getId(), server.getGuild(), numReplicantsOnRack + 1);
           Integer numReplicants = segmentsInCluster.get(segment.getId(), server.getTier());
           if (numReplicants == null) {
             numReplicants = 0;
@@ -55,6 +63,11 @@ public class SegmentReplicantLookup
 
         // Also account for queued segments
         for (DataSegment segment : serverHolder.getPeon().getSegmentsToLoad()) {
+          Integer numReplicantsOnRack = historicalGuildDistribution.get(segment.getId(), server.getGuild());
+          if (numReplicantsOnRack == null) {
+          numReplicantsOnRack = 0;
+          }
+          historicalGuildDistribution.put(segment.getId(), server.getGuild(), numReplicantsOnRack + 1);
           Integer numReplicants = loadingSegments.get(segment.getId(), server.getTier());
           if (numReplicants == null) {
             numReplicants = 0;
@@ -64,22 +77,25 @@ public class SegmentReplicantLookup
       }
     }
 
-    return new SegmentReplicantLookup(segmentsInCluster, loadingSegments, cluster);
+    return new SegmentReplicantLookup(segmentsInCluster, loadingSegments, cluster, historicalGuildDistribution);
   }
 
   private final Table<SegmentId, String, Integer> segmentsInCluster;
   private final Table<SegmentId, String, Integer> loadingSegments;
+  private final Table<SegmentId, String, Integer> historicalGuildDistribution;
   private final DruidCluster cluster;
 
   private SegmentReplicantLookup(
       Table<SegmentId, String, Integer> segmentsInCluster,
       Table<SegmentId, String, Integer> loadingSegments,
-      DruidCluster cluster
+      DruidCluster cluster,
+      Table<SegmentId, String, Integer> historicalGuildDistribution
   )
   {
     this.segmentsInCluster = segmentsInCluster;
     this.loadingSegments = loadingSegments;
     this.cluster = cluster;
+    this.historicalGuildDistribution = historicalGuildDistribution;
   }
 
   public Map<String, Integer> getClusterTiers(SegmentId segmentId)
@@ -146,4 +162,23 @@ public class SegmentReplicantLookup
     }
     return perTier;
   }
+
+  public Map<String, Integer> getGuildMapForSegment(SegmentId segmentId)
+  {
+    Map<String, Integer> retVal = historicalGuildDistribution.row(segmentId);
+    return (retVal == null) ? new HashMap<>() : retVal;
+  }
+
+  public int getReplicaCountForGuild(SegmentId segmentId, String guild)
+  {
+    Integer retVal = historicalGuildDistribution.get(segmentId, guild);
+    return (retVal == null) ? 0 : retVal;
+  }
+
+  public Set<String> getGuildSetForSegment(SegmentId segmentId)
+  {
+    Map<String,Integer> map = getGuildMapForSegment(segmentId);
+    return (map.isEmpty()) ? new HashSet<>() : map.keySet();
+  }
+
 }

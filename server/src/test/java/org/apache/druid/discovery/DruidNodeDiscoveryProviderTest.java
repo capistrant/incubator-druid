@@ -91,15 +91,30 @@ public class DruidNodeDiscoveryProviderTest
         new DruidNode("s1", "h1", false, 8080, null, true, false),
         NodeRole.HISTORICAL,
         ImmutableMap.of(
-            DataNodeService.DISCOVERY_SERVICE_KEY, new DataNodeService("tier", 1000, ServerType.HISTORICAL, 0),
-            LookupNodeService.DISCOVERY_SERVICE_KEY, new LookupNodeService("tier"))
+            DataNodeService.DISCOVERY_SERVICE_KEY,
+            new DataNodeService(
+                "tier",
+                1000,
+                ServerType.HISTORICAL,
+                0,"_default_guild"
+            ),
+            LookupNodeService.DISCOVERY_SERVICE_KEY, new LookupNodeService("tier")
+        )
     );
 
     DiscoveryDruidNode node2 = new DiscoveryDruidNode(
         new DruidNode("s2", "h2", false, 8080, null, true, false),
         NodeRole.HISTORICAL,
         ImmutableMap.of(
-            DataNodeService.DISCOVERY_SERVICE_KEY, new DataNodeService("tier", 1000, ServerType.HISTORICAL, 0))
+            DataNodeService.DISCOVERY_SERVICE_KEY,
+            new DataNodeService(
+                "tier",
+                1000,
+                ServerType.HISTORICAL,
+                0,
+                "_default_guild"
+            )
+        )
     );
 
     DiscoveryDruidNode node3 = new DiscoveryDruidNode(
@@ -113,15 +128,31 @@ public class DruidNodeDiscoveryProviderTest
         new DruidNode("s4", "h4", false, 8080, null, true, false),
         NodeRole.PEON,
         ImmutableMap.of(
-            DataNodeService.DISCOVERY_SERVICE_KEY, new DataNodeService("tier", 1000, ServerType.HISTORICAL, 0),
-            LookupNodeService.DISCOVERY_SERVICE_KEY, new LookupNodeService("tier"))
+            DataNodeService.DISCOVERY_SERVICE_KEY,
+            new DataNodeService(
+                "tier",
+                1000,
+                ServerType.HISTORICAL,
+                0,
+                "_default_guild"
+            ),
+            LookupNodeService.DISCOVERY_SERVICE_KEY, new LookupNodeService("tier")
+        )
     );
 
     DiscoveryDruidNode node5 = new DiscoveryDruidNode(
         new DruidNode("s5", "h5", false, 8080, null, true, false),
         NodeRole.PEON,
         ImmutableMap.of(
-            DataNodeService.DISCOVERY_SERVICE_KEY, new DataNodeService("tier", 1000, ServerType.HISTORICAL, 0))
+            DataNodeService.DISCOVERY_SERVICE_KEY,
+            new DataNodeService(
+                "tier",
+                1000,
+                ServerType.HISTORICAL,
+                0,
+                "_default_tier"
+            )
+        )
     );
 
     DiscoveryDruidNode node6 = new DiscoveryDruidNode(

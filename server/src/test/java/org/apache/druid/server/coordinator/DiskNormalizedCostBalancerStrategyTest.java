@@ -66,7 +66,16 @@ public class DiskNormalizedCostBalancerStrategyTest
       serverHolderList.add(
           new ServerHolder(
               new ImmutableDruidServer(
-                  new DruidServerMetadata("DruidServer_Name_" + i, "localhost", null, 10000000L, ServerType.HISTORICAL, "hot", 1),
+                  new DruidServerMetadata(
+                      "DruidServer_Name_" + i,
+                      "localhost",
+                      null,
+                      10000000L,
+                      ServerType.HISTORICAL,
+                      "hot",
+                      1,
+                      "_default_guild"
+                  ),
                   3000L,
                   ImmutableMap.of("DUMMY", dataSource),
                   segments.size()

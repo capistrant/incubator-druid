@@ -594,7 +594,8 @@ public class SystemSchema extends AbstractSchema
             dataNodeService.getMaxSize(),
             dataNodeService.getType(),
             dataNodeService.getTier(),
-            dataNodeService.getPriority()
+            dataNodeService.getPriority(),
+            dataNodeService.getGuild()
         );
       } else {
         throw new ISE("[%s] is not a discoverable data server", discoveryDruidNode);

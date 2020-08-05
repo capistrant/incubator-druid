@@ -267,7 +267,8 @@ public class CoordinatorBasedSegmentHandoffNotifierTest
         10000,
         type,
         "tier",
-        1
+        1,
+        "_default_guild"
     );
   }
 

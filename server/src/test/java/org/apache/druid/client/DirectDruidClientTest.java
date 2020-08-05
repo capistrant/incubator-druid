@@ -113,7 +113,8 @@ public class DirectDruidClientTest
             0,
             ServerType.HISTORICAL,
             DruidServer.DEFAULT_TIER,
-            0
+            0,
+            DruidServer.DEFAULT_GUILD
         ),
         client
     );
@@ -179,7 +180,8 @@ public class DirectDruidClientTest
             0,
             ServerType.HISTORICAL,
             DruidServer.DEFAULT_TIER,
-            0
+            0,
+            DruidServer.DEFAULT_GUILD
         ),
         client2
     );

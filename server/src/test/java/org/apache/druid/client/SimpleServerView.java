@@ -179,7 +179,8 @@ public class SimpleServerView implements TimelineServerView
         Long.MAX_VALUE,
         ServerType.HISTORICAL,
         "default",
-        0
+        0,
+        "_default_guild"
     );
   }
 }
