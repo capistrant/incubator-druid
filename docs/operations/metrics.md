@@ -254,6 +254,7 @@ These metrics are for the Druid Coordinator and are reset each time the Coordina
 |`segment/skipCompact/bytes`|Total bytes of this datasource that are skipped (not eligible for auto compaction) by the auto compaction.|datasource.|Varies.|
 |`segment/skipCompact/count`|Total number of segments of this datasource that are skipped (not eligible for auto compaction) by the auto compaction.|datasource.|Varies.|
 |`interval/skipCompact/count`|Total number of intervals of this datasource that are skipped (not eligible for auto compaction) by the auto compaction.|datasource.|Varies.|
+|`guild/replicationMinimumViolation/count`|Total number of used segments who reside on <= 1 guild. This metric is only available if `druid.coordinator.guildReplication.on=true` in the coordinator runtime properties, and `emitGuildReplicationMetrics=true` in the coordinator dynamic config. Enabling it requires the coordinator to iterate all used segments to compute the metric, which comes with a compute cost.|datasource.|cose to 0
 
 If `emitBalancingStats` is set to `true` in the Coordinator [dynamic configuration](
 ../configuration/index.html#dynamic-configuration), then [log entries](../configuration/logging.md) for class
