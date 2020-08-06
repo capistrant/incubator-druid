@@ -58,7 +58,10 @@ public class DruidServerConfig
     return tier;
   }
 
-  public String getGuild() { return guild; }
+  public String getGuild()
+  {
+    return guild;
+  }
 
   public int getPriority()
   {

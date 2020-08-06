@@ -107,7 +107,10 @@ public class DataNodeService extends DruidService
   }
 
   @JsonProperty
-  public String getGuild() { return guild; }
+  public String getGuild()
+  {
+    return guild;
+  }
 
   @Override
   public boolean equals(Object o)

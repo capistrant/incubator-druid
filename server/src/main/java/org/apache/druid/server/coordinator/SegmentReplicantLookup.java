@@ -63,11 +63,11 @@ public class SegmentReplicantLookup
 
         // Also account for queued segments
         for (DataSegment segment : serverHolder.getPeon().getSegmentsToLoad()) {
-          Integer numReplicantsOnRack = historicalGuildDistribution.get(segment.getId(), server.getGuild());
-          if (numReplicantsOnRack == null) {
-          numReplicantsOnRack = 0;
+          Integer numReplicantsOnGuild = historicalGuildDistribution.get(segment.getId(), server.getGuild());
+          if (numReplicantsOnGuild == null) {
+            numReplicantsOnGuild = 0;
           }
-          historicalGuildDistribution.put(segment.getId(), server.getGuild(), numReplicantsOnRack + 1);
+          historicalGuildDistribution.put(segment.getId(), server.getGuild(), numReplicantsOnGuild + 1);
           Integer numReplicants = loadingSegments.get(segment.getId(), server.getTier());
           if (numReplicants == null) {
             numReplicants = 0;
@@ -177,7 +177,7 @@ public class SegmentReplicantLookup
 
   public Set<String> getGuildSetForSegment(SegmentId segmentId)
   {
-    Map<String,Integer> map = getGuildMapForSegment(segmentId);
+    Map<String, Integer> map = getGuildMapForSegment(segmentId);
     return (map.isEmpty()) ? new HashSet<>() : map.keySet();
   }
 

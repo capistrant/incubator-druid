@@ -96,7 +96,8 @@ public class DruidNodeDiscoveryProviderTest
                 "tier",
                 1000,
                 ServerType.HISTORICAL,
-                0,"_default_guild"
+                0,
+                "_default_guild"
             ),
             LookupNodeService.DISCOVERY_SERVICE_KEY, new LookupNodeService("tier")
         )

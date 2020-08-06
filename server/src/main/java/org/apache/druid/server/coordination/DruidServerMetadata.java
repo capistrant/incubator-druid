@@ -111,7 +111,10 @@ public class DruidServerMetadata
   }
 
   @JsonProperty
-  public String getGuild() { return guild; }
+  public String getGuild()
+  {
+    return guild;
+  }
 
   public boolean isSegmentReplicationTarget()
   {
