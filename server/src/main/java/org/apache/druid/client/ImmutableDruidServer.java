@@ -107,7 +107,10 @@ public class ImmutableDruidServer
     return metadata.getPriority();
   }
 
-  public String getGuild() { return metadata.getGuild(); }
+  public String getGuild()
+  {
+    return metadata.getGuild();
+  }
 
   @Nullable
   public DataSegment getSegment(SegmentId segmentId)

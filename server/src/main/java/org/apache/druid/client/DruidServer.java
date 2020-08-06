@@ -162,7 +162,10 @@ public class DruidServer implements Comparable<DruidServer>
   }
 
   @JsonProperty
-  public String getGuild() { return metadata.getGuild(); }
+  public String getGuild()
+  {
+    return metadata.getGuild();
+  }
 
   public String getScheme()
   {

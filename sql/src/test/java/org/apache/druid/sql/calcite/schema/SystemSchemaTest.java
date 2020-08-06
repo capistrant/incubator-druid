@@ -498,7 +498,8 @@ public class SystemSchemaTest extends CalciteTestBase
           5L,
           ServerType.HISTORICAL,
           DruidServer.DEFAULT_TIER,
-          0,DruidServer.DEFAULT_GUILD
+          0,
+          DruidServer.DEFAULT_GUILD
       ),
       1L,
       ImmutableMap.of(

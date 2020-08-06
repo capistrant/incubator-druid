@@ -308,9 +308,10 @@ public abstract class LoadRule implements Rule
       return 0;
     }
 
-    // We say "suspected unused guild" because if we are assigning more than one replica in the below loop, anything beyond the first replica might go to a used guild.
+    // We say "suspected unused guild" because if we are assigning more than one replica in the below loop
+    // anything beyond the first replica might go to a used guild.
     String noUnusedGuildAvailability = StringUtils.format(
-        "No available [%s] servers or node capacity to assign segment[%s] on a suspected unused guild! Trying used guilds next.",
+        "No available [%s] servers or node capacity to assign segment[%s] on a suspected unused guild!",
         tier,
         segment.getId()
     );
@@ -331,7 +332,8 @@ public abstract class LoadRule implements Rule
     }
 
     // Split the Holders depending on if they are a part of guild that is already serving the DataSegment
-    Map<Boolean, List<ServerHolder>> partitions = holders.stream().collect(Collectors.partitioningBy(s -> usedGuildSet.contains(s.getServer().getGuild())));
+    Map<Boolean, List<ServerHolder>> partitions =
+        holders.stream().collect(Collectors.partitioningBy(s -> usedGuildSet.contains(s.getServer().getGuild())));
     final List<ServerHolder> usedGuildHolders = partitions.get(true);
     final List<ServerHolder> unusedGuildHolders = partitions.get(false);
 
@@ -344,9 +346,11 @@ public abstract class LoadRule implements Rule
 
       ServerHolder holder = strategyCache.remove(tier);
 
-      // We don't want to used the cached holder if it is on a used guild. We defer to using it only if we check used guilds later.
+      // We don't want to used the cached holder if it is on a used guild. We defer to using later if needed.
       if (usedGuildSet.contains(holder.getServer().getGuild())) {
-        log.debug("putting cached entry back in cache because it is on a used guild. We will use it if we have to try used guilds");
+        log.debug(
+            "putting cached entry back in cache because it is on a used guild." +
+            " We will use it if we have to try used guilds");
         strategyCache.put(tier, holder);
         holder = null;
       }
@@ -370,7 +374,8 @@ public abstract class LoadRule implements Rule
       }
 
       // We remove the chosen holder from the unused guild list.
-      // For now we have chosen not to remove the holders that belong to the same guild as the chosen server. We achieved our goal of at least on replica on a different guild so the compute to try to ensure even more guild distribution for further replicas is deemed unnecessary at this time.
+      // In the future we could decide to remove the holders that belong to the same guild as the chosen server.
+      // Doing sowould even further increase guild distribution
       unusedGuildHolders.remove(holder);
 
       final SegmentId segmentId = segment.getId();
@@ -452,14 +457,27 @@ public abstract class LoadRule implements Rule
       Map<String, Integer> guildReplicants
   )
   {
-    // We need to split the decomissioning servers from the active servers and then further split the active servers into servers whose guild hosts more than 1 replica of a segment vs guilds who serve only 1 replica of a segment
-    Map<Boolean, HashSet<ServerHolder>> partitions = holdersInTier.stream().filter(s -> s.isServingSegment(segment)).collect(Collectors.partitioningBy(ServerHolder::isDecommissioning, Collectors.toCollection(HashSet::new)));
+    // We need to split the decomissioning servers from the active servers,and then further split the active servers
+    // into servers whose guild hosts more than 1 replica of a segment vs guilds who serve only 1 replica of a segment
+    Map<Boolean, HashSet<ServerHolder>> partitions =
+        holdersInTier
+            .stream()
+            .filter(
+                s -> s.isServingSegment(segment))
+            .collect(Collectors.partitioningBy(ServerHolder::isDecommissioning, Collectors.toCollection(HashSet::new)));
+
     TreeSet<ServerHolder> decommissioningServers = new TreeSet<>(partitions.get(true));
+
     Predicate<ServerHolder> guildReplicationFactorPredicate = s -> {
-      int guildReplicantCount = (guildReplicants.get(s.getServer().getGuild()) == null) ? 0 : guildReplicants.get(s.getServer().getGuild());
+      int guildReplicantCount =
+          (guildReplicants.get(s.getServer().getGuild()) == null) ? 0 : guildReplicants.get(s.getServer().getGuild());
       return guildReplicantCount > 1;
     };
-    Map<Boolean, TreeSet<ServerHolder>> guildPartitions = partitions.get(false).stream().collect(Collectors.partitioningBy(guildReplicationFactorPredicate, Collectors.toCollection(TreeSet::new)));
+
+    Map<Boolean, TreeSet<ServerHolder>> guildPartitions =
+        partitions.get(false).stream().collect(
+            Collectors.partitioningBy(guildReplicationFactorPredicate, Collectors.toCollection(TreeSet::new)));
+
     TreeSet<ServerHolder> overPopulatedGuildSet = guildPartitions.get(true);
     TreeSet<ServerHolder> underPopulatedGuildSet = guildPartitions.get(false);
 
