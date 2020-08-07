@@ -64,7 +64,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -300,7 +299,7 @@ public class LoadRuleTest
     EasyMock.expectLastCall().once();
 
     // Force us to pick a server from DruidServer.DEFAULT_GUILD for the primary so we can test guild distribution on the replica assignment
-    EasyMock.expect(mockBalancerStrategy.findNewSegmentHomeReplicator(segment, ImmutableList.of(holder3,holder2,holder1)))
+    EasyMock.expect(mockBalancerStrategy.findNewSegmentHomeReplicator(segment, ImmutableList.of(holder3, holder2, holder1)))
             .andReturn(holder1);
     EasyMock.expect(mockBalancerStrategy.findNewSegmentHomeReplicator(segment, ImmutableList.of(holder3)))
             .andDelegateTo(balancerStrategy);
