@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.druid.client.DruidServer;
 import org.apache.druid.client.ImmutableDruidServer;
 import org.apache.druid.client.ImmutableDruidServerTests;
 import org.apache.druid.java.util.common.DateTimes;
@@ -181,8 +182,8 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveToEmptyServerBalancer()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, "_default_guild");
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -213,6 +214,128 @@ public class BalanceSegmentsTest
   }
 
   /**
+   * Moving segments within guild should be allowed despite > 1 replicas existing for segment in guild when there are
+   * no candiate servers on an unused guild.
+   */
+  @Test
+  public void testMoveToEmptyServerBalancer2()
+  {
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
+
+    EasyMock.replay(druidServer4);
+
+    // Mock stuff that the coordinator needs
+    mockCoordinator(coordinator);
+
+    BalancerStrategy predefinedPickOrderStrategy = new PredefinedPickOrderBalancerStrategy(
+        balancerStrategy,
+        ImmutableList.of(
+            new BalancerSegmentHolder(druidServer1, segment1),
+            new BalancerSegmentHolder(druidServer1, segment2),
+            new BalancerSegmentHolder(druidServer2, segment3),
+            new BalancerSegmentHolder(druidServer2, segment4)
+        )
+    );
+
+    DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
+        ImmutableList.of(druidServer1, druidServer2, druidServer3),
+        ImmutableList.of(peon1, peon2, peon3)
+    )
+        .withBalancerStrategy(predefinedPickOrderStrategy)
+        .withBroadcastDatasources(broadcastDatasources)
+        .build();
+
+    params = new BalanceSegmentsTester(coordinator).run(params);
+    Assert.assertEquals(4, params.getCoordinatorStats().getTieredStat("movedCount", "normal"));
+  }
+
+  /**
+   * Segments are balanced to an empty server in an unused guild rather than an empty server in a used guild
+   */
+  @Test
+  public void testMoveToEmptyServerBalancerWithTwoGuilds()
+  {
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer4, "4", "normal", 0L, 100L, Collections.emptyList(), "guild_2");
+
+    // Mock stuff that the coordinator needs
+    mockCoordinator(coordinator);
+
+    BalancerStrategy predefinedPickOrderStrategy = new PredefinedPickOrderBalancerStrategy(
+        balancerStrategy,
+        ImmutableList.of(
+            new BalancerSegmentHolder(druidServer1, segment1),
+            new BalancerSegmentHolder(druidServer1, segment2),
+            new BalancerSegmentHolder(druidServer2, segment3),
+            new BalancerSegmentHolder(druidServer2, segment4)
+        )
+    );
+
+    DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
+        ImmutableList.of(druidServer1, druidServer2, druidServer3, druidServer4),
+        ImmutableList.of(peon1, peon2, peon3, peon4)
+    )
+        .withBalancerStrategy(predefinedPickOrderStrategy)
+        .withBroadcastDatasources(broadcastDatasources)
+        .build();
+
+    params = new BalanceSegmentsTester(coordinator).run(params);
+    Assert.assertEquals(4, params.getCoordinatorStats().getTieredStat("movedCount", "normal"));
+    Assert.assertThat(
+        peon4.getSegmentsToLoad(),
+        Matchers.is(Matchers.equalTo(ImmutableSet.of(segment1, segment2, segment3, segment4)))
+    );
+  }
+
+  /**
+   * Segments are balanced within the guild when balancing to another used guild would comprimise guild distribution.
+   */
+  @Test
+  public void testMoveToEmptyServerBalancerWithTwoGuilds2()
+  {
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, segments, "guild_2");
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer4, "4", "normal", 0L, 100L, Collections.emptyList(), "guild_2");
+
+    // Mock stuff that the coordinator needs
+    mockCoordinator(coordinator);
+
+    BalancerStrategy predefinedPickOrderStrategy = new PredefinedPickOrderBalancerStrategy(
+        balancerStrategy,
+        ImmutableList.of(
+            new BalancerSegmentHolder(druidServer1, segment1),
+            new BalancerSegmentHolder(druidServer1, segment2),
+            new BalancerSegmentHolder(druidServer2, segment3),
+            new BalancerSegmentHolder(druidServer2, segment4)
+        )
+    );
+
+    DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
+        ImmutableList.of(druidServer1, druidServer2, druidServer3, druidServer4),
+        ImmutableList.of(peon1, peon2, peon3, peon4)
+    )
+        .withBalancerStrategy(predefinedPickOrderStrategy)
+        .withBroadcastDatasources(broadcastDatasources)
+        .build();
+
+    params = new BalanceSegmentsTester(coordinator).run(params);
+    Assert.assertEquals(4, params.getCoordinatorStats().getTieredStat("movedCount", "normal"));
+    Assert.assertThat(
+        peon3.getSegmentsToLoad(),
+        Matchers.is(Matchers.equalTo(ImmutableSet.of(segment1, segment2)))
+    );
+    Assert.assertThat(
+        peon4.getSegmentsToLoad(),
+        Matchers.is(Matchers.equalTo(ImmutableSet.of(segment3, segment4)))
+    );
+  }
+
+  /**
    * Server 1 has 2 segments.
    * Server 2 (decommissioning) has 2 segments.
    * Server 3 is empty.
@@ -223,9 +346,9 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveDecommissioningMaxPercentOfMaxSegmentsToMove()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment2), "_default_guild");
-    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, Arrays.asList(segment3, segment4), "_default_guild");
-    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment2), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, Arrays.asList(segment3, segment4), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer4);
 
@@ -291,9 +414,9 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveDecommissioningMaxPercentOfMaxSegmentsToMoveWithNoDecommissioning()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment2), "_default_guild");
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Arrays.asList(segment3, segment4), "_default_guild");
-    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment2), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Arrays.asList(segment3, segment4), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer4);
 
@@ -340,8 +463,8 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveToDecommissioningServer()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, "_default_guild");
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -374,8 +497,8 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveFromDecommissioningServer()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, "_default_guild");
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -411,8 +534,8 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveMaxLoadQueueServerBalancer()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, "_default_guild");
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -454,8 +577,8 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveSameSegmentTwice()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, "_default_guild");
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -491,8 +614,8 @@ public class BalanceSegmentsTest
   public void testRun1()
   {
     // Mock some servers of different usages
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, "_default_guild");
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -513,10 +636,10 @@ public class BalanceSegmentsTest
   public void testRun2()
   {
     // Mock some servers of different usages
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, "_default_guild");
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
-    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
-    mockDruidServer(druidServer4, "4", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer4, "4", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     // Mock stuff that the coordinator needs
     mockCoordinator(coordinator);
@@ -653,9 +776,9 @@ public class BalanceSegmentsTest
 
   private DruidCoordinatorRuntimeParams setupParamsForDecommissioningMaxPercentOfMaxSegmentsToMove(int percent)
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment3), "_default_guild");
-    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, Arrays.asList(segment2, segment3), "_default_guild");
-    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment3), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, Arrays.asList(segment2, segment3), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer4);
 
