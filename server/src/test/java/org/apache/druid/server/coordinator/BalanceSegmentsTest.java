@@ -181,8 +181,8 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveToEmptyServerBalancer()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments);
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, "_default_guild");
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -223,9 +223,9 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveDecommissioningMaxPercentOfMaxSegmentsToMove()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment2));
-    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, Arrays.asList(segment3, segment4));
-    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment2), "_default_guild");
+    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, Arrays.asList(segment3, segment4), "_default_guild");
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
 
     EasyMock.replay(druidServer4);
 
@@ -291,9 +291,9 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveDecommissioningMaxPercentOfMaxSegmentsToMoveWithNoDecommissioning()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment2));
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Arrays.asList(segment3, segment4));
-    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment2), "_default_guild");
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Arrays.asList(segment3, segment4), "_default_guild");
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
 
     EasyMock.replay(druidServer4);
 
@@ -340,8 +340,8 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveToDecommissioningServer()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments);
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, "_default_guild");
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -374,8 +374,8 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveFromDecommissioningServer()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments);
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, "_default_guild");
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -411,8 +411,8 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveMaxLoadQueueServerBalancer()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments);
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, "_default_guild");
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -454,8 +454,8 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveSameSegmentTwice()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments);
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, "_default_guild");
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -491,8 +491,8 @@ public class BalanceSegmentsTest
   public void testRun1()
   {
     // Mock some servers of different usages
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments);
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, "_default_guild");
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -513,10 +513,10 @@ public class BalanceSegmentsTest
   public void testRun2()
   {
     // Mock some servers of different usages
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments);
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList());
-    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList());
-    mockDruidServer(druidServer4, "4", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, "_default_guild");
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
+    mockDruidServer(druidServer4, "4", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
 
     // Mock stuff that the coordinator needs
     mockCoordinator(coordinator);
@@ -545,20 +545,19 @@ public class BalanceSegmentsTest
       List<Boolean> decommissioning
   )
   {
+    DruidCluster druidCluster = DruidClusterBuilder
+        .newBuilder()
+        .addTier(
+            "normal",
+            IntStream
+                .range(0, druidServers.size())
+                .mapToObj(i -> new ServerHolder(druidServers.get(i), peons.get(i), decommissioning.get(i)))
+                .toArray(ServerHolder[]::new)
+        )
+        .build();
     return CoordinatorRuntimeParamsTestHelpers
         .newBuilder()
-        .withDruidCluster(
-            DruidClusterBuilder
-                .newBuilder()
-                .addTier(
-                    "normal",
-                    IntStream
-                        .range(0, druidServers.size())
-                        .mapToObj(i -> new ServerHolder(druidServers.get(i), peons.get(i), decommissioning.get(i)))
-                        .toArray(ServerHolder[]::new)
-                )
-                .build()
-        )
+        .withDruidCluster(druidCluster)
         .withLoadManagementPeons(
             IntStream
                 .range(0, peons.size())
@@ -568,7 +567,8 @@ public class BalanceSegmentsTest
         .withUsedSegmentsInTest(segments)
         .withDynamicConfigs(CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(MAX_SEGMENTS_TO_MOVE).build())
         .withBroadcastDatasources(broadcastDatasources)
-        .withBalancerStrategy(balancerStrategy);
+        .withBalancerStrategy(balancerStrategy)
+        .withSegmentReplicantLookup(SegmentReplicantLookup.make(druidCluster));
   }
 
   private static void mockDruidServer(
@@ -577,7 +577,8 @@ public class BalanceSegmentsTest
       String tier,
       long currentSize,
       long maxSize,
-      List<DataSegment> segments
+      List<DataSegment> segments,
+      String guild
   )
   {
     EasyMock.expect(druidServer.getName()).andReturn(name).anyTimes();
@@ -593,6 +594,7 @@ public class BalanceSegmentsTest
       );
     }
     EasyMock.expect(druidServer.getSegment(EasyMock.anyObject())).andReturn(null).anyTimes();
+    EasyMock.expect(druidServer.getGuild()).andReturn(guild).anyTimes();
     EasyMock.replay(druidServer);
   }
 
@@ -651,9 +653,9 @@ public class BalanceSegmentsTest
 
   private DruidCoordinatorRuntimeParams setupParamsForDecommissioningMaxPercentOfMaxSegmentsToMove(int percent)
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment3));
-    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, Arrays.asList(segment2, segment3));
-    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment3), "_default_guild");
+    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, Arrays.asList(segment2, segment3), "_default_guild");
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), "_default_guild");
 
     EasyMock.replay(druidServer4);
 

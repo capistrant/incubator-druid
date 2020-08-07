@@ -347,7 +347,7 @@ public abstract class LoadRule implements Rule
       ServerHolder holder = strategyCache.remove(tier);
 
       // We don't want to used the cached holder if it is on a used guild. We defer to using later if needed.
-      if (usedGuildSet.contains(holder.getServer().getGuild())) {
+      if (holder != null && usedGuildSet.contains(holder.getServer().getGuild())) {
         log.debug(
             "putting cached entry back in cache because it is on a used guild." +
             " We will use it if we have to try used guilds");
@@ -356,7 +356,7 @@ public abstract class LoadRule implements Rule
       }
 
       // Try to find holder on unused Guild
-      if (holder == null) {
+      if (holder == null && !unusedGuildHolders.isEmpty()) {
         holder = params.getBalancerStrategy().findNewSegmentHomeReplicator(segment, unusedGuildHolders);
       }
 

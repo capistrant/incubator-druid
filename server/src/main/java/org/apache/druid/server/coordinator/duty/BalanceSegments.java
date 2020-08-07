@@ -36,6 +36,7 @@ import org.apache.druid.timeline.DataSegment;
 import org.apache.druid.timeline.SegmentId;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
@@ -207,15 +208,25 @@ public class BalanceSegments implements CoordinatorDuty
         final ImmutableDruidServer fromServer = segmentToMoveHolder.getFromServer();
 
         final Set<String> usedGuildSet =
-            params.getSegmentReplicantLookup().getGuildSetForSegment(segmentToMove.getId());
-        final int guildReplicationFactor = (params.getSegmentReplicantLookup().getGuildMapForSegment(segmentToMove.getId()).get(fromServer.getGuild()) == null) ? 0 : params.getSegmentReplicantLookup().getGuildMapForSegment(segmentToMove.getId()).get(fromServer.getGuild());
+            (params.getSegmentReplicantLookup()
+                   .getGuildSetForSegment(segmentToMove.getId()) == null) ? new HashSet<>()
+                                                                          : params.getSegmentReplicantLookup()
+                                                                                  .getGuildSetForSegment(
+                                                                                      segmentToMove.getId());
+        final int guildReplicationFactor =
+            (params.getSegmentReplicantLookup()
+                   .getGuildMapForSegment(segmentToMove.getId())
+                   .get(fromServer.getGuild()) == null) ? 0
+                                                        : params.getSegmentReplicantLookup()
+                                                                .getGuildMapForSegment(segmentToMove.getId())
+                                                                .get(fromServer.getGuild());
         // We filter out servers in any guild hosting the segment of interes.
         // We also filter out the rest of the servers in the from guild if there is > 1 replica in the guild.
         List<ServerHolder> filteredToMoveTo =
             toMoveTo.stream()
                     .filter(s -> s.getServer().equals(fromServer) ||
                                  (s.getServer().getGuild().equals(fromServer.getGuild()) &&
-                                  guildReplicationFactor <= 1) ||
+                                  guildReplicationFactor <= 1 && (maxToLoad <= 0 || s.getNumberOfSegmentsInQueue() < maxToLoad)) ||
                                  (!usedGuildSet.contains(s.getServer().getGuild())) &&
                                  (maxToLoad <= 0 || s.getNumberOfSegmentsInQueue() < maxToLoad))
                     .collect(Collectors.toList());
