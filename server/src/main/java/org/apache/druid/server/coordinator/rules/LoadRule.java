@@ -151,6 +151,11 @@ public abstract class LoadRule implements Rule
 
       int numAssigned = 1; // 1 replica (i.e., primary replica) already assigned
 
+      // Update Guild DataStructures once we have assigned a primary
+      usedGuildSet.add(primaryHolderToLoad.getServer().getGuild());
+      guildReplicants.put(primaryHolderToLoad.getServer().getGuild(),
+                          (guildReplicants.getOrDefault(primaryHolderToLoad.getServer().getGuild(), 0) + 1));
+
       final String tier = primaryHolderToLoad.getServer().getTier();
       // assign replicas for the rest of the tier
       numAssigned += assignReplicasForTier(
@@ -358,14 +363,16 @@ public abstract class LoadRule implements Rule
       // Try to find holder on unused Guild
       if (holder == null && !unusedGuildHolders.isEmpty()) {
         holder = params.getBalancerStrategy().findNewSegmentHomeReplicator(segment, unusedGuildHolders);
+        unusedGuildHolders.remove(holder);
       }
 
       if (holder == null) {
         log.warn(noUnusedGuildAvailability);
-        holder = strategyCache.get(tier);
+        holder = strategyCache.remove(tier);
         if (holder == null) {
           holder = params.getBalancerStrategy().findNewSegmentHomeReplicator(segment, usedGuildHolders);
         }
+        usedGuildHolders.remove(holder);
       }
 
       if (holder == null) {
@@ -373,10 +380,10 @@ public abstract class LoadRule implements Rule
         return numAssigned;
       }
 
-      // We remove the chosen holder from the unused guild list.
-      // In the future we could decide to remove the holders that belong to the same guild as the chosen server.
-      // Doing sowould even further increase guild distribution
-      unusedGuildHolders.remove(holder);
+      // Update guild data structures after assigning replica
+      usedGuildSet.add(holder.getServer().getGuild());
+      guildReplicants.put(
+          holder.getServer().getGuild(), guildReplicants.getOrDefault(holder.getServer().getGuild(), 0) + 1);
 
       final SegmentId segmentId = segment.getId();
       final String holderHost = holder.getServer().getHost();
@@ -497,7 +504,8 @@ public abstract class LoadRule implements Rule
   private static int dropSegmentFromServers(
       BalancerStrategy balancerStrategy,
       DataSegment segment,
-      NavigableSet<ServerHolder> holders, int numToDrop
+      NavigableSet<ServerHolder> holders,
+      int numToDrop
   )
   {
     final Iterator<ServerHolder> iterator = balancerStrategy.pickServersToDrop(segment, holders);
