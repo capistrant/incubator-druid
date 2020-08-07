@@ -99,6 +99,8 @@ public abstract class LoadRule implements Rule
       targetReplicants.clear();
       currentReplicants.clear();
       strategyCache.clear();
+      guildReplicants.clear();
+      usedGuildSet.clear();
     }
   }
 
