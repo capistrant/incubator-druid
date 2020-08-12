@@ -188,7 +188,7 @@ public class RunRulesTest
     ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
     BalancerStrategy balancerStrategy = new CostBalancerStrategyFactory().createBalancerStrategy(exec);
 
-    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy)
+    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy, false)
         .withDynamicConfigs(CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(5).build())
         .build();
 
@@ -207,20 +207,22 @@ public class RunRulesTest
 
   private DruidCoordinatorRuntimeParams.Builder makeCoordinatorRuntimeParams(
       DruidCluster druidCluster,
-      BalancerStrategy balancerStrategy
+      BalancerStrategy balancerStrategy,
+      boolean guildReplicationEnabled
   )
   {
-    return makeCoordinatorRuntimeParams(druidCluster, balancerStrategy, usedSegments);
+    return makeCoordinatorRuntimeParams(druidCluster, balancerStrategy, usedSegments, guildReplicationEnabled);
   }
 
   private DruidCoordinatorRuntimeParams.Builder makeCoordinatorRuntimeParams(
       DruidCluster druidCluster,
       BalancerStrategy balancerStrategy,
-      List<DataSegment> dataSegments
+      List<DataSegment> dataSegments,
+      boolean guildReplicationEnabled
   )
   {
     return createCoordinatorRuntimeParams(druidCluster, dataSegments)
-        .withSegmentReplicantLookup(SegmentReplicantLookup.make(druidCluster))
+        .withSegmentReplicantLookup(SegmentReplicantLookup.make(druidCluster, guildReplicationEnabled))
         .withBalancerStrategy(balancerStrategy);
   }
 
@@ -301,7 +303,7 @@ public class RunRulesTest
     ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
     BalancerStrategy balancerStrategy = new CostBalancerStrategyFactory().createBalancerStrategy(exec);
 
-    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy).build();
+    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy, false).build();
 
     DruidCoordinatorRuntimeParams afterParams = ruleRunner.run(params);
     CoordinatorStats stats = afterParams.getCoordinatorStats();
@@ -369,7 +371,7 @@ public class RunRulesTest
         .addTier("normal", new ServerHolder(normServer.toImmutableDruidServer(), mockPeon))
         .build();
 
-    SegmentReplicantLookup segmentReplicantLookup = SegmentReplicantLookup.make(druidCluster);
+    SegmentReplicantLookup segmentReplicantLookup = SegmentReplicantLookup.make(druidCluster, false);
 
     ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
     BalancerStrategy balancerStrategy = new CostBalancerStrategyFactory().createBalancerStrategy(exec);
@@ -440,7 +442,7 @@ public class RunRulesTest
     ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
     BalancerStrategy balancerStrategy = new CostBalancerStrategyFactory().createBalancerStrategy(exec);
 
-    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy)
+    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy, false)
         .withEmitter(emitter)
         .build();
 
@@ -495,7 +497,7 @@ public class RunRulesTest
         .build();
 
     DruidCoordinatorRuntimeParams params = createCoordinatorRuntimeParams(druidCluster)
-        .withSegmentReplicantLookup(SegmentReplicantLookup.make(new DruidCluster()))
+        .withSegmentReplicantLookup(SegmentReplicantLookup.make(new DruidCluster(), false))
         .withEmitter(emitter)
         .build();
 
@@ -545,7 +547,7 @@ public class RunRulesTest
         .addTier("normal", new ServerHolder(server.toImmutableDruidServer(), mockPeon))
         .build();
 
-    SegmentReplicantLookup segmentReplicantLookup = SegmentReplicantLookup.make(druidCluster);
+    SegmentReplicantLookup segmentReplicantLookup = SegmentReplicantLookup.make(druidCluster, false);
 
     ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
     BalancerStrategy balancerStrategy = new CostBalancerStrategyFactory().createBalancerStrategy(exec);
@@ -619,7 +621,7 @@ public class RunRulesTest
         )
         .build();
 
-    SegmentReplicantLookup segmentReplicantLookup = SegmentReplicantLookup.make(druidCluster);
+    SegmentReplicantLookup segmentReplicantLookup = SegmentReplicantLookup.make(druidCluster, false);
 
     ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
     BalancerStrategy balancerStrategy = new CostBalancerStrategyFactory().createBalancerStrategy(exec);
@@ -697,7 +699,7 @@ public class RunRulesTest
         .addTier("normal", new ServerHolder(server2.toImmutableDruidServer(), mockPeon))
         .build();
 
-    SegmentReplicantLookup segmentReplicantLookup = SegmentReplicantLookup.make(druidCluster);
+    SegmentReplicantLookup segmentReplicantLookup = SegmentReplicantLookup.make(druidCluster, false);
 
     ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
     BalancerStrategy balancerStrategy = new CostBalancerStrategyFactory().createBalancerStrategy(exec);
@@ -767,7 +769,7 @@ public class RunRulesTest
         .addTier("normal", new ServerHolder(server2.toImmutableDruidServer(), mockPeon))
         .build();
 
-    SegmentReplicantLookup segmentReplicantLookup = SegmentReplicantLookup.make(druidCluster);
+    SegmentReplicantLookup segmentReplicantLookup = SegmentReplicantLookup.make(druidCluster, false);
 
     ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
     BalancerStrategy balancerStrategy = new CostBalancerStrategyFactory().createBalancerStrategy(exec);
@@ -860,7 +862,7 @@ public class RunRulesTest
         )
         .build();
 
-    SegmentReplicantLookup segmentReplicantLookup = SegmentReplicantLookup.make(druidCluster);
+    SegmentReplicantLookup segmentReplicantLookup = SegmentReplicantLookup.make(druidCluster, false);
 
     ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
     BalancerStrategy balancerStrategy = new CostBalancerStrategyFactory().createBalancerStrategy(exec);
@@ -930,7 +932,7 @@ public class RunRulesTest
     ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
     BalancerStrategy balancerStrategy = new CostBalancerStrategyFactory().createBalancerStrategy(exec);
 
-    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy).build();
+    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy, false).build();
 
     DruidCoordinatorRuntimeParams afterParams = ruleRunner.run(params);
     CoordinatorStats stats = afterParams.getCoordinatorStats();
@@ -959,7 +961,7 @@ public class RunRulesTest
             .withUsedSegmentsInTest(overFlowSegment)
             .withDatabaseRuleManager(databaseRuleManager)
             .withBalancerStrategy(balancerStrategy)
-            .withSegmentReplicantLookup(SegmentReplicantLookup.make(new DruidCluster()))
+            .withSegmentReplicantLookup(SegmentReplicantLookup.make(new DruidCluster(), false))
             .build()
     );
     stats = afterParams.getCoordinatorStats();
@@ -1043,7 +1045,7 @@ public class RunRulesTest
     ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
     BalancerStrategy balancerStrategy = new CostBalancerStrategyFactory().createBalancerStrategy(exec);
 
-    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy).build();
+    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy, false).build();
 
     RunRules runner = new RunRules(new ReplicationThrottler(7, 1), coordinator);
     DruidCoordinatorRuntimeParams afterParams = runner.run(params);
@@ -1128,7 +1130,7 @@ public class RunRulesTest
         )
         .build();
 
-    SegmentReplicantLookup segmentReplicantLookup = SegmentReplicantLookup.make(druidCluster);
+    SegmentReplicantLookup segmentReplicantLookup = SegmentReplicantLookup.make(druidCluster, false);
 
     ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
     BalancerStrategy balancerStrategy = new CostBalancerStrategyFactory().createBalancerStrategy(exec);
@@ -1218,7 +1220,7 @@ public class RunRulesTest
         .withDruidCluster(druidCluster)
         .withUsedSegmentsInTest(usedSegments)
         .withDatabaseRuleManager(databaseRuleManager)
-        .withSegmentReplicantLookup(SegmentReplicantLookup.make(new DruidCluster()))
+        .withSegmentReplicantLookup(SegmentReplicantLookup.make(new DruidCluster(), false))
         .withBalancerStrategy(balancerStrategy)
         .withDynamicConfigs(CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(5).build())
         .build();
@@ -1306,7 +1308,7 @@ public class RunRulesTest
 
     RandomBalancerStrategy balancerStrategy = new RandomBalancerStrategy();
 
-    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy, Collections.singletonList(dataSegment))
+    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy, Collections.singletonList(dataSegment), false)
         .withDynamicConfigs(CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(5).build())
         .build();
 
@@ -1377,7 +1379,7 @@ public class RunRulesTest
 
     RandomBalancerStrategy balancerStrategy = new RandomBalancerStrategy();
 
-    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy, Collections.singletonList(dataSegment))
+    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy, Collections.singletonList(dataSegment), false)
         .withDynamicConfigs(CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(5).build())
         .build();
 
@@ -1444,7 +1446,7 @@ public class RunRulesTest
 
     RandomBalancerStrategy balancerStrategy = new RandomBalancerStrategy();
 
-    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy, Collections.singletonList(dataSegment))
+    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy, Collections.singletonList(dataSegment), false)
         .withDynamicConfigs(CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(5).build())
         .build();
 
@@ -1513,7 +1515,7 @@ public class RunRulesTest
     ListeningExecutorService exec = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
     CostBalancerStrategy balancerStrategy = new CostBalancerStrategy(exec);
 
-    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy, Collections.singletonList(dataSegment))
+    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, balancerStrategy, Collections.singletonList(dataSegment), false)
         .withDynamicConfigs(CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(5).build())
         .build();
 

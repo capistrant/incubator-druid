@@ -203,7 +203,8 @@ public class BalanceSegmentsTest
 
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
-        ImmutableList.of(peon1, peon2)
+        ImmutableList.of(peon1, peon2),
+        false
     )
         .withBalancerStrategy(predefinedPickOrderStrategy)
         .withBroadcastDatasources(broadcastDatasources)
@@ -241,7 +242,8 @@ public class BalanceSegmentsTest
 
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2, druidServer3),
-        ImmutableList.of(peon1, peon2, peon3)
+        ImmutableList.of(peon1, peon2, peon3),
+        true
     )
         .withBalancerStrategy(predefinedPickOrderStrategy)
         .withBroadcastDatasources(broadcastDatasources)
@@ -277,7 +279,8 @@ public class BalanceSegmentsTest
 
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2, druidServer3, druidServer4),
-        ImmutableList.of(peon1, peon2, peon3, peon4)
+        ImmutableList.of(peon1, peon2, peon3, peon4),
+        true
     )
         .withBalancerStrategy(predefinedPickOrderStrategy)
         .withBroadcastDatasources(broadcastDatasources)
@@ -317,7 +320,8 @@ public class BalanceSegmentsTest
 
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2, druidServer3, druidServer4),
-        ImmutableList.of(peon1, peon2, peon3, peon4)
+        ImmutableList.of(peon1, peon2, peon3, peon4),
+        true
     )
         .withBalancerStrategy(predefinedPickOrderStrategy)
         .withBroadcastDatasources(broadcastDatasources)
@@ -370,7 +374,8 @@ public class BalanceSegmentsTest
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2, druidServer3),
         ImmutableList.of(peon1, peon2, peon3),
-        ImmutableList.of(false, true, false)
+        ImmutableList.of(false, true, false),
+        false
     )
         .withDynamicConfigs(
             CoordinatorDynamicConfig.builder()
@@ -437,7 +442,8 @@ public class BalanceSegmentsTest
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2, druidServer3),
         ImmutableList.of(peon1, peon2, peon3),
-        ImmutableList.of(false, false, false)
+        ImmutableList.of(false, false, false),
+        false
     )
         .withDynamicConfigs(
             CoordinatorDynamicConfig.builder()
@@ -484,7 +490,8 @@ public class BalanceSegmentsTest
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
         ImmutableList.of(peon1, peon2),
-        ImmutableList.of(false, true)
+        ImmutableList.of(false, true),
+        false
     )
         .withBalancerStrategy(strategy)
         .withBroadcastDatasources(broadcastDatasources)
@@ -518,7 +525,8 @@ public class BalanceSegmentsTest
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
         ImmutableList.of(peon1, peon2),
-        ImmutableList.of(true, false)
+        ImmutableList.of(true, false),
+        false
     )
         .withDynamicConfigs(CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(1).build())
         .withBalancerStrategy(strategy)
@@ -555,7 +563,8 @@ public class BalanceSegmentsTest
 
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
-        ImmutableList.of(peon1, peon2)
+        ImmutableList.of(peon1, peon2),
+        false
     )
         .withBalancerStrategy(predefinedPickOrderStrategy)
         .withBroadcastDatasources(broadcastDatasources)
@@ -595,7 +604,8 @@ public class BalanceSegmentsTest
 
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
-        ImmutableList.of(peon1, peon2)
+        ImmutableList.of(peon1, peon2),
+        false
     )
         .withBalancerStrategy(predefinedPickOrderStrategy)
         .withBroadcastDatasources(broadcastDatasources)
@@ -625,7 +635,8 @@ public class BalanceSegmentsTest
 
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
-        ImmutableList.of(peon1, peon2)
+        ImmutableList.of(peon1, peon2),
+        false
     ).build();
 
     params = new BalanceSegmentsTester(coordinator).run(params);
@@ -644,7 +655,7 @@ public class BalanceSegmentsTest
     // Mock stuff that the coordinator needs
     mockCoordinator(coordinator);
 
-    DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(druidServers, peons).build();
+    DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(druidServers, peons, false).build();
 
     params = new BalanceSegmentsTester(coordinator).run(params);
     Assert.assertTrue(params.getCoordinatorStats().getTieredStat("movedCount", "normal") > 0);
@@ -652,20 +663,23 @@ public class BalanceSegmentsTest
 
   private DruidCoordinatorRuntimeParams.Builder defaultRuntimeParamsBuilder(
       List<ImmutableDruidServer> druidServers,
-      List<LoadQueuePeon> peons
+      List<LoadQueuePeon> peons,
+      boolean guildReplicationEnabled
   )
   {
     return defaultRuntimeParamsBuilder(
         druidServers,
         peons,
-        druidServers.stream().map(s -> false).collect(Collectors.toList())
+        druidServers.stream().map(s -> false).collect(Collectors.toList()),
+        guildReplicationEnabled
     );
   }
 
   private DruidCoordinatorRuntimeParams.Builder defaultRuntimeParamsBuilder(
       List<ImmutableDruidServer> druidServers,
       List<LoadQueuePeon> peons,
-      List<Boolean> decommissioning
+      List<Boolean> decommissioning,
+      boolean guildReplicationEnabled
   )
   {
     DruidCluster druidCluster = DruidClusterBuilder
@@ -691,7 +705,8 @@ public class BalanceSegmentsTest
         .withDynamicConfigs(CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(MAX_SEGMENTS_TO_MOVE).build())
         .withBroadcastDatasources(broadcastDatasources)
         .withBalancerStrategy(balancerStrategy)
-        .withSegmentReplicantLookup(SegmentReplicantLookup.make(druidCluster));
+        .withGuildReplicationDirective(guildReplicationEnabled)
+        .withSegmentReplicantLookup(SegmentReplicantLookup.make(druidCluster, guildReplicationEnabled));
   }
 
   private static void mockDruidServer(
@@ -798,7 +813,8 @@ public class BalanceSegmentsTest
     return defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2, druidServer3),
         ImmutableList.of(peon1, peon2, peon3),
-        ImmutableList.of(false, true, false)
+        ImmutableList.of(false, true, false),
+        false
     )
         .withDynamicConfigs(
             CoordinatorDynamicConfig.builder()
