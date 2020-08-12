@@ -172,7 +172,7 @@ public class LoadRuleTest
         )
         .build();
 
-    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, segment), segment);
+    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, false, segment), segment);
 
     Assert.assertEquals(1L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, "hot"));
     Assert.assertEquals(1L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, DruidServer.DEFAULT_TIER));
@@ -256,7 +256,7 @@ public class LoadRuleTest
         )
         .build();
 
-    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, segment), segment);
+    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, true, segment), segment);
 
     Assert.assertEquals(1L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, "hot"));
     Assert.assertEquals(1L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, DruidServer.DEFAULT_TIER));
@@ -316,7 +316,7 @@ public class LoadRuleTest
         )
         .build();
 
-    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, segment), segment);
+    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, true, segment), segment);
 
     Assert.assertEquals(2L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, DruidServer.DEFAULT_TIER));
 
@@ -325,13 +325,15 @@ public class LoadRuleTest
 
   private DruidCoordinatorRuntimeParams makeCoordinatorRuntimeParams(
       DruidCluster druidCluster,
+      boolean guildReplicationEnabled,
       DataSegment... usedSegments
   )
   {
     return CoordinatorRuntimeParamsTestHelpers
         .newBuilder()
         .withDruidCluster(druidCluster)
-        .withSegmentReplicantLookup(SegmentReplicantLookup.make(druidCluster))
+        .withGuildReplicationDirective(guildReplicationEnabled)
+        .withSegmentReplicantLookup(SegmentReplicantLookup.make(druidCluster, guildReplicationEnabled))
         .withReplicationManager(throttler)
         .withBalancerStrategy(mockBalancerStrategy)
         .withUsedSegmentsInTest(usedSegments)
@@ -388,7 +390,7 @@ public class LoadRuleTest
 
     CoordinatorStats stats = rule.run(
         null,
-        makeCoordinatorRuntimeParams(druidCluster, segment),
+        makeCoordinatorRuntimeParams(druidCluster, false, segment),
         segment
     );
 
@@ -406,7 +408,7 @@ public class LoadRuleTest
 
     CoordinatorStats statsAfterLoadPrimary = rule.run(
         null,
-        makeCoordinatorRuntimeParams(afterLoad, segment),
+        makeCoordinatorRuntimeParams(afterLoad, false, segment),
         segment
     );
 
@@ -485,7 +487,7 @@ public class LoadRuleTest
 
     final DataSegment segment = createDataSegment("foo");
 
-    final CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, segment), segment);
+    final CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, false, segment), segment);
 
     Assert.assertEquals(0L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, "tier1"));
     Assert.assertEquals(1L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, "tier2"));
@@ -553,7 +555,7 @@ public class LoadRuleTest
         )
         .build();
 
-    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, segment), segment);
+    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, false, segment), segment);
 
     Assert.assertEquals(1L, stats.getTieredStat("droppedCount", "hot"));
     Assert.assertEquals(1L, stats.getTieredStat("droppedCount", DruidServer.DEFAULT_TIER));
@@ -603,7 +605,7 @@ public class LoadRuleTest
         CoordinatorRuntimeParamsTestHelpers
             .newBuilder()
             .withDruidCluster(druidCluster)
-            .withSegmentReplicantLookup(SegmentReplicantLookup.make(new DruidCluster()))
+            .withSegmentReplicantLookup(SegmentReplicantLookup.make(new DruidCluster(), true))
             .withReplicationManager(throttler)
             .withBalancerStrategy(mockBalancerStrategy)
             .withUsedSegmentsInTest(segment)
@@ -663,7 +665,7 @@ public class LoadRuleTest
         )
         .build();
 
-    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, segment), segment);
+    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, false, segment), segment);
 
     Assert.assertEquals(1L, stats.getTieredStat("droppedCount", "hot"));
 
@@ -710,7 +712,7 @@ public class LoadRuleTest
     DruidCoordinatorRuntimeParams params = CoordinatorRuntimeParamsTestHelpers
         .newBuilder()
         .withDruidCluster(druidCluster)
-        .withSegmentReplicantLookup(SegmentReplicantLookup.make(druidCluster))
+        .withSegmentReplicantLookup(SegmentReplicantLookup.make(druidCluster, true))
         .withReplicationManager(throttler)
         .withBalancerStrategy(mockBalancerStrategy)
         .withUsedSegmentsInTest(dataSegment1, dataSegment2, dataSegment3)
@@ -755,7 +757,7 @@ public class LoadRuleTest
         .addTier("tier2", createServerHolder("tier2", mockPeon2, false))
         .build();
 
-    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, segment), segment);
+    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, false, segment), segment);
 
     Assert.assertEquals(1L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, "tier2"));
     EasyMock.verify(mockPeon1, mockPeon2, mockBalancerStrategy);
@@ -802,7 +804,7 @@ public class LoadRuleTest
         .addTier("tier2", holder3, holder4)
         .build();
 
-    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, segment), segment);
+    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, false, segment), segment);
 
     Assert.assertEquals(1L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, "tier1"));
     Assert.assertEquals(2L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, "tier2"));
@@ -844,7 +846,7 @@ public class LoadRuleTest
         )
         .build();
 
-    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, segment1, segment2);
+    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, false, segment1, segment2);
     CoordinatorStats stats = rule.run(null, params, segment1);
     Assert.assertEquals(1L, stats.getTieredStat("droppedCount", "tier1"));
     stats = rule.run(null, params, segment2);
@@ -891,7 +893,7 @@ public class LoadRuleTest
         )
         .build();
 
-    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, segment1), segment1);
+    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, false, segment1), segment1);
     Assert.assertEquals(1L, stats.getTieredStat("droppedCount", "tier1"));
     Assert.assertEquals(0, mockPeon1.getSegmentsToDrop().size());
     Assert.assertEquals(1, mockPeon2.getSegmentsToDrop().size());
@@ -985,7 +987,7 @@ public class LoadRuleTest
         )
         .build();
 
-    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, segment), segment);
+    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, true, segment), segment);
 
     Assert.assertEquals(2L, stats.getTieredStat("droppedCount", DruidServer.DEFAULT_TIER));
 

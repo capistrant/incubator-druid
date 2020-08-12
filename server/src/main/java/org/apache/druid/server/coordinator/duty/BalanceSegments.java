@@ -207,42 +207,55 @@ public class BalanceSegments implements CoordinatorDuty
         final DataSegment segmentToMove = segmentToMoveHolder.getSegment();
         final ImmutableDruidServer fromServer = segmentToMoveHolder.getFromServer();
 
-        final Set<String> usedGuildSet =
-            (params.getSegmentReplicantLookup()
-                   .getGuildSetForSegment(segmentToMove.getId()) == null) ? new HashSet<>()
-                                                                          : params.getSegmentReplicantLookup()
-                                                                                  .getGuildSetForSegment(
-                                                                                      segmentToMove.getId());
-        final int guildReplicationFactor =
-            (params.getSegmentReplicantLookup()
-                   .getGuildMapForSegment(segmentToMove.getId())
-                   .get(fromServer.getGuild()) == null) ? 0
-                                                        : params.getSegmentReplicantLookup()
-                                                                .getGuildMapForSegment(segmentToMove.getId())
-                                                                .get(fromServer.getGuild());
-        // We filter out servers in any guild hosting the segment of interes.
-        // We also filter out the rest of the servers in the from guild if there is > 1 replica in the guild.
-        List<ServerHolder> filteredToMoveTo =
-            toMoveTo.stream()
-                    .filter(s -> s.getServer().equals(fromServer) ||
-                                 (s.getServer().getGuild().equals(fromServer.getGuild()) &&
-                                  guildReplicationFactor <= 1 && (maxToLoad <= 0 || s.getNumberOfSegmentsInQueue() < maxToLoad)) ||
-                                 (!usedGuildSet.contains(s.getServer().getGuild())) &&
-                                 (maxToLoad <= 0 || s.getNumberOfSegmentsInQueue() < maxToLoad))
-                    .collect(Collectors.toList());
-        // If there are no candidates, we will evaluate any server that is not already serving the segment
-        if (filteredToMoveTo.size() == 1) {
-          log.debug(
-              "Segment [%s] is allowing moves to used guilds because filtering out used guilds and the from guild if" +
-              " the guild replication factor > 1 left us with only one option, not moving the segment",
-              segmentToMove.getId());
+        List<ServerHolder> filteredToMoveTo;
+        if (!params.isGuildReplicationEnabled()) {
           filteredToMoveTo =
               toMoveTo.stream()
                       .filter(s -> s.getServer().equals(fromServer) ||
                                    (!s.isServingSegment(segmentToMove) &&
                                     (maxToLoad <= 0 || s.getNumberOfSegmentsInQueue() < maxToLoad)))
                       .collect(Collectors.toList());
+        } else {
+          final Set<String> usedGuildSet =
+              (params.getSegmentReplicantLookup()
+                     .getGuildSetForSegment(segmentToMove.getId()) == null) ? new HashSet<>()
+                                                                            : params.getSegmentReplicantLookup()
+                                                                                    .getGuildSetForSegment(
+                                                                                        segmentToMove.getId());
+          final int guildReplicationFactor =
+              (params.getSegmentReplicantLookup()
+                     .getGuildMapForSegment(segmentToMove.getId())
+                     .get(fromServer.getGuild()) == null) ? 0
+                                                          : params.getSegmentReplicantLookup()
+                                                                  .getGuildMapForSegment(segmentToMove.getId())
+                                                                  .get(fromServer.getGuild());
+          // We filter out servers in any guild hosting the segment of interes.
+          // We also filter out the rest of the servers in the from guild if there is > 1 replica in the guild.
+          filteredToMoveTo =
+              toMoveTo.stream()
+                      .filter(s -> s.getServer().equals(fromServer) ||
+                                   (s.getServer().getGuild().equals(fromServer.getGuild()) &&
+                                    guildReplicationFactor <= 1 && (maxToLoad <= 0
+                                                                    || s.getNumberOfSegmentsInQueue() < maxToLoad)) ||
+                                   (!usedGuildSet.contains(s.getServer().getGuild())) &&
+                                   (maxToLoad <= 0 || s.getNumberOfSegmentsInQueue() < maxToLoad))
+                      .collect(Collectors.toList());
+          // If there are no candidates, we will evaluate any server that is not already serving the segment
+          if (filteredToMoveTo.size() == 1) {
+            log.debug(
+                "Segment [%s] is allowing moves to used guilds because filtering out used guilds and the from guild if"
+                +
+                " the guild replication factor > 1 left us with only one option, not moving the segment",
+                segmentToMove.getId()
+            );
+            filteredToMoveTo =
+                toMoveTo.stream()
+                        .filter(s -> s.getServer().equals(fromServer) ||
+                                     (!s.isServingSegment(segmentToMove) &&
+                                      (maxToLoad <= 0 || s.getNumberOfSegmentsInQueue() < maxToLoad)))
+                        .collect(Collectors.toList());
 
+          }
         }
 
         if (filteredToMoveTo.size() > 0) {
