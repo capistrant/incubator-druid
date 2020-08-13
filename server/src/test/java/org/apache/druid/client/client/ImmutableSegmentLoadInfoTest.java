@@ -22,6 +22,7 @@ package org.apache.druid.client.client;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
 import junit.framework.Assert;
+import org.apache.druid.client.DruidServer;
 import org.apache.druid.client.ImmutableSegmentLoadInfo;
 import org.apache.druid.java.util.common.Intervals;
 import org.apache.druid.segment.TestHelper;
@@ -60,7 +61,7 @@ public class ImmutableSegmentLoadInfoTest
                 ServerType.HISTORICAL,
                 "tier",
                 1,
-                "_default_guild"
+                DruidServer.DEFAULT_GUILD
             )
         )
     );

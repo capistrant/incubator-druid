@@ -214,7 +214,7 @@ public class CachingClusteredClientFunctionalityTest
                         ServerType.HISTORICAL,
                         "a",
                         10,
-                        "_default_guild"
+                        DruidServer.DEFAULT_GUILD
                     ),
                     EasyMock.createNiceMock(DirectDruidClient.class)
                 );
@@ -237,7 +237,7 @@ public class CachingClusteredClientFunctionalityTest
                             ServerType.HISTORICAL,
                             "a",
                             10,
-                            "_default_guild"
+                            DruidServer.DEFAULT_GUILD
                         ),
                         EasyMock.createNiceMock(DirectDruidClient.class)
                     )

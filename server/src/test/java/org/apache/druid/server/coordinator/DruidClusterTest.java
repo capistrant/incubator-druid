@@ -21,6 +21,7 @@ package org.apache.druid.server.coordinator;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.apache.druid.client.DruidServer;
 import org.apache.druid.client.ImmutableDruidDataSource;
 import org.apache.druid.client.ImmutableDruidServer;
 import org.apache.druid.java.util.common.Intervals;
@@ -74,7 +75,7 @@ public class DruidClusterTest
 
   private static final ServerHolder NEW_REALTIME = new ServerHolder(
       new ImmutableDruidServer(
-          new DruidServerMetadata("name1", "host2", null, 100L, ServerType.REALTIME, "tier1", 0, "_default_guild"),
+          new DruidServerMetadata("name1", "host2", null, 100L, ServerType.REALTIME, "tier1", 0, DruidServer.DEFAULT_GUILD),
           0L,
           ImmutableMap.of("src1", DATA_SOURCES.get("src1")),
           1
@@ -84,7 +85,7 @@ public class DruidClusterTest
 
   private static final ServerHolder NEW_HISTORICAL = new ServerHolder(
       new ImmutableDruidServer(
-          new DruidServerMetadata("name1", "host2", null, 100L, ServerType.HISTORICAL, "tier1", 0, "_default_guild"),
+          new DruidServerMetadata("name1", "host2", null, 100L, ServerType.HISTORICAL, "tier1", 0, DruidServer.DEFAULT_GUILD),
           0L,
           ImmutableMap.of("src1", DATA_SOURCES.get("src1")),
           1
@@ -110,7 +111,7 @@ public class DruidClusterTest
                         ServerType.REALTIME,
                         "tier1",
                         0,
-                        "_default_guild"
+                        DruidServer.DEFAULT_GUILD
                     ),
                     0L,
                     ImmutableMap.of("src1", DATA_SOURCES.get("src1")),

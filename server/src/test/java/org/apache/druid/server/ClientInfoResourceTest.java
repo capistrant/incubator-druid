@@ -75,7 +75,7 @@ public class ClientInfoResourceTest
         ServerType.HISTORICAL,
         "tier",
         0,
-        "_default_guild"
+        DruidServer.DEFAULT_GUILD
     );
 
     addSegment(timeline, server, "1960-02-13/1961-02-14", ImmutableList.of("d5"), ImmutableList.of("m5"), "v0");

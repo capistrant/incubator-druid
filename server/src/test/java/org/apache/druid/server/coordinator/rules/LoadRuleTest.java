@@ -57,8 +57,11 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -69,6 +72,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  */
+@RunWith(Parameterized.class)
 public class LoadRuleTest
 {
   private static final Logger log = new Logger(LoadRuleTest.class);
@@ -90,6 +94,24 @@ public class LoadRuleTest
   private BalancerStrategy balancerStrategy;
 
   private BalancerStrategy mockBalancerStrategy;
+
+  private boolean guildReplicationEnabled;
+
+  public LoadRuleTest(boolean guildReplicationEnabled)
+  {
+    this.guildReplicationEnabled = guildReplicationEnabled;
+  }
+
+  @Parameterized.Parameters(name = "{index}: guildReplicationEnabled:{0}")
+  public static Iterable<Object[]> data()
+  {
+    return Arrays.asList(
+        new Object[][]{
+            {false},
+            {true}
+        }
+    );
+  }
 
   @Before
   public void setUp()
@@ -172,7 +194,9 @@ public class LoadRuleTest
         )
         .build();
 
-    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, false, segment), segment);
+    CoordinatorStats stats = rule.run(
+        null,
+        makeCoordinatorRuntimeParams(druidCluster, guildReplicationEnabled, segment), segment);
 
     Assert.assertEquals(1L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, "hot"));
     Assert.assertEquals(1L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, DruidServer.DEFAULT_TIER));
@@ -256,6 +280,7 @@ public class LoadRuleTest
         )
         .build();
 
+    // This test is written only for guildReplicationEnabled = true. Therefore, not using parameterized value for params
     CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, true, segment), segment);
 
     Assert.assertEquals(1L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, "hot"));
@@ -299,7 +324,8 @@ public class LoadRuleTest
     EasyMock.expectLastCall().once();
 
     // Force us to pick a server from DruidServer.DEFAULT_GUILD for the primary so we can test guild distribution on the replica assignment
-    EasyMock.expect(mockBalancerStrategy.findNewSegmentHomeReplicator(segment, ImmutableList.of(holder3, holder2, holder1)))
+    EasyMock.expect(
+        mockBalancerStrategy.findNewSegmentHomeReplicator(segment, ImmutableList.of(holder3, holder2, holder1)))
             .andReturn(holder1);
     EasyMock.expect(mockBalancerStrategy.findNewSegmentHomeReplicator(segment, ImmutableList.of(holder3)))
             .andDelegateTo(balancerStrategy);
@@ -316,6 +342,7 @@ public class LoadRuleTest
         )
         .build();
 
+    // This test is written only for guildReplicationEnabled = true. Therefore, not using parameterized value for params
     CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, true, segment), segment);
 
     Assert.assertEquals(2L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, DruidServer.DEFAULT_TIER));
@@ -390,7 +417,7 @@ public class LoadRuleTest
 
     CoordinatorStats stats = rule.run(
         null,
-        makeCoordinatorRuntimeParams(druidCluster, false, segment),
+        makeCoordinatorRuntimeParams(druidCluster, guildReplicationEnabled, segment),
         segment
     );
 
@@ -408,7 +435,7 @@ public class LoadRuleTest
 
     CoordinatorStats statsAfterLoadPrimary = rule.run(
         null,
-        makeCoordinatorRuntimeParams(afterLoad, false, segment),
+        makeCoordinatorRuntimeParams(afterLoad, guildReplicationEnabled, segment),
         segment
     );
 
@@ -487,7 +514,9 @@ public class LoadRuleTest
 
     final DataSegment segment = createDataSegment("foo");
 
-    final CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, false, segment), segment);
+    final CoordinatorStats stats = rule.run(
+        null,
+        makeCoordinatorRuntimeParams(druidCluster, guildReplicationEnabled, segment), segment);
 
     Assert.assertEquals(0L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, "tier1"));
     Assert.assertEquals(1L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, "tier2"));
@@ -555,7 +584,9 @@ public class LoadRuleTest
         )
         .build();
 
-    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, false, segment), segment);
+    CoordinatorStats stats = rule.run(
+        null,
+        makeCoordinatorRuntimeParams(druidCluster, guildReplicationEnabled, segment), segment);
 
     Assert.assertEquals(1L, stats.getTieredStat("droppedCount", "hot"));
     Assert.assertEquals(1L, stats.getTieredStat("droppedCount", DruidServer.DEFAULT_TIER));
@@ -665,7 +696,9 @@ public class LoadRuleTest
         )
         .build();
 
-    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, false, segment), segment);
+    CoordinatorStats stats = rule.run(
+        null,
+        makeCoordinatorRuntimeParams(druidCluster, guildReplicationEnabled, segment), segment);
 
     Assert.assertEquals(1L, stats.getTieredStat("droppedCount", "hot"));
 
@@ -757,7 +790,9 @@ public class LoadRuleTest
         .addTier("tier2", createServerHolder("tier2", mockPeon2, false))
         .build();
 
-    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, false, segment), segment);
+    CoordinatorStats stats = rule.run(
+        null,
+        makeCoordinatorRuntimeParams(druidCluster, guildReplicationEnabled, segment), segment);
 
     Assert.assertEquals(1L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, "tier2"));
     EasyMock.verify(mockPeon1, mockPeon2, mockBalancerStrategy);
@@ -804,7 +839,9 @@ public class LoadRuleTest
         .addTier("tier2", holder3, holder4)
         .build();
 
-    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, false, segment), segment);
+    CoordinatorStats stats = rule.run(
+        null,
+        makeCoordinatorRuntimeParams(druidCluster, guildReplicationEnabled, segment), segment);
 
     Assert.assertEquals(1L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, "tier1"));
     Assert.assertEquals(2L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, "tier2"));
@@ -846,7 +883,11 @@ public class LoadRuleTest
         )
         .build();
 
-    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(druidCluster, false, segment1, segment2);
+    DruidCoordinatorRuntimeParams params = makeCoordinatorRuntimeParams(
+        druidCluster,
+        guildReplicationEnabled,
+        segment1,
+        segment2);
     CoordinatorStats stats = rule.run(null, params, segment1);
     Assert.assertEquals(1L, stats.getTieredStat("droppedCount", "tier1"));
     stats = rule.run(null, params, segment2);
@@ -893,7 +934,9 @@ public class LoadRuleTest
         )
         .build();
 
-    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, false, segment1), segment1);
+    CoordinatorStats stats = rule.run(
+        null,
+        makeCoordinatorRuntimeParams(druidCluster, guildReplicationEnabled, segment1), segment1);
     Assert.assertEquals(1L, stats.getTieredStat("droppedCount", "tier1"));
     Assert.assertEquals(0, mockPeon1.getSegmentsToDrop().size());
     Assert.assertEquals(1, mockPeon2.getSegmentsToDrop().size());
@@ -910,12 +953,10 @@ public class LoadRuleTest
   @Test
   public void testDropTwoGuilds()
   {
-    final LoadQueuePeon mockPeon1 = createEmptyPeon();
-    final LoadQueuePeon mockPeon2 = createEmptyPeon();
-    final LoadQueuePeon mockPeon3 = createEmptyPeon();
-    final LoadQueuePeon mockPeon4 = createEmptyPeon();
-    mockPeon1.dropSegment(EasyMock.anyObject(), EasyMock.anyObject());
-    mockPeon2.dropSegment(EasyMock.anyObject(), EasyMock.anyObject());
+    final LoadQueuePeon mockPeon1 = new LoadQueuePeonTester();
+    final LoadQueuePeon mockPeon2 = new LoadQueuePeonTester();
+    final LoadQueuePeon mockPeon3 = new LoadQueuePeonTester();
+    final LoadQueuePeon mockPeon4 = new LoadQueuePeonTester();
 
     final DataSegment segment = createDataSegment("foo");
 
@@ -939,7 +980,7 @@ public class LoadRuleTest
         ServerType.HISTORICAL,
         DruidServer.DEFAULT_TIER,
         0,
-        DruidServer.DEFAULT_GUILD
+        "guild_2"
     );
     server2.addDataSegment(segment);
     ServerHolder holder2 = new ServerHolder(server2.toImmutableDruidServer(), mockPeon2, false);
@@ -951,7 +992,7 @@ public class LoadRuleTest
         ServerType.HISTORICAL,
         DruidServer.DEFAULT_TIER,
         0,
-        "guild_2"
+        DruidServer.DEFAULT_GUILD
     );
     server3.addDataSegment(segment);
     ServerHolder holder3 = new ServerHolder(server3.toImmutableDruidServer(), mockPeon3, false);
@@ -970,7 +1011,7 @@ public class LoadRuleTest
 
     EasyMock.expect(mockBalancerStrategy.pickServersToDrop(EasyMock.anyObject(), EasyMock.anyObject()))
             .andDelegateTo(balancerStrategy).times(2);
-    EasyMock.replay(throttler, mockPeon1, mockPeon2, mockPeon3, mockPeon4, mockBalancerStrategy);
+    EasyMock.replay(throttler, mockBalancerStrategy);
 
     LoadRule rule = createLoadRule(ImmutableMap.of(
         DruidServer.DEFAULT_TIER, 2
@@ -987,11 +1028,16 @@ public class LoadRuleTest
         )
         .build();
 
+    // This test is written only for guildReplicationEnabled = true. Therefore, not using parameterized value for params
     CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, true, segment), segment);
 
     Assert.assertEquals(2L, stats.getTieredStat("droppedCount", DruidServer.DEFAULT_TIER));
+    Assert.assertEquals(1, mockPeon1.getSegmentsToDrop().size());
+    Assert.assertEquals(0, mockPeon2.getSegmentsToDrop().size());
+    Assert.assertEquals(1, mockPeon3.getSegmentsToDrop().size());
+    Assert.assertEquals(0, mockPeon4.getSegmentsToDrop().size());
 
-    EasyMock.verify(throttler, mockPeon1, mockPeon2, mockPeon3, mockPeon4);
+    EasyMock.verify(throttler);
   }
 
   private DataSegment createDataSegment(String dataSource)

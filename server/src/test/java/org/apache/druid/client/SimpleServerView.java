@@ -185,7 +185,7 @@ public class SimpleServerView implements TimelineServerView
         ServerType.HISTORICAL,
         "default",
         0,
-        "_default_guild"
+        DruidServer.DEFAULT_GUILD
     );
   }
 }

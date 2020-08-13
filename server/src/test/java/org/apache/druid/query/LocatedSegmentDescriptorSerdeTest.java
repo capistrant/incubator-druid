@@ -20,6 +20,7 @@
 package org.apache.druid.query;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.druid.client.DruidServer;
 import org.apache.druid.jackson.DefaultObjectMapper;
 import org.apache.druid.java.util.common.Intervals;
 import org.apache.druid.server.coordination.DruidServerMetadata;
@@ -42,8 +43,8 @@ public class LocatedSegmentDescriptorSerdeTest
         new SegmentDescriptor(Intervals.utc(100, 200), "version", 100),
         65535,
         Arrays.asList(
-            new DruidServerMetadata("server1", "host1", null, 30000L, ServerType.HISTORICAL, "tier1", 0, "_default_guild"),
-            new DruidServerMetadata("server2", "host2", null, 40000L, ServerType.HISTORICAL, "tier1", 1, "_default_guild"),
+            new DruidServerMetadata("server1", "host1", null, 30000L, ServerType.HISTORICAL, "tier1", 0, DruidServer.DEFAULT_GUILD),
+            new DruidServerMetadata("server2", "host2", null, 40000L, ServerType.HISTORICAL, "tier1", 1, DruidServer.DEFAULT_GUILD),
             new DruidServerMetadata("server3", "host3", null, 50000L, ServerType.REALTIME, "tier2", 2, "red_guild")
         )
     );

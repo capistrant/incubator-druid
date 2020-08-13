@@ -22,6 +22,7 @@ package org.apache.druid.discovery;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.apache.druid.client.DruidServer;
 import org.apache.druid.server.DruidNode;
 import org.apache.druid.server.coordination.ServerType;
 import org.junit.Assert;
@@ -97,7 +98,7 @@ public class DruidNodeDiscoveryProviderTest
                 1000,
                 ServerType.HISTORICAL,
                 0,
-                "_default_guild"
+                DruidServer.DEFAULT_GUILD
             ),
             LookupNodeService.DISCOVERY_SERVICE_KEY, new LookupNodeService("tier")
         )
@@ -113,7 +114,7 @@ public class DruidNodeDiscoveryProviderTest
                 1000,
                 ServerType.HISTORICAL,
                 0,
-                "_default_guild"
+                DruidServer.DEFAULT_GUILD
             )
         )
     );
@@ -135,7 +136,7 @@ public class DruidNodeDiscoveryProviderTest
                 1000,
                 ServerType.HISTORICAL,
                 0,
-                "_default_guild"
+                DruidServer.DEFAULT_GUILD
             ),
             LookupNodeService.DISCOVERY_SERVICE_KEY, new LookupNodeService("tier")
         )

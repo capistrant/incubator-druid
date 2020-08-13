@@ -22,6 +22,7 @@ package org.apache.druid.server.coordination;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import org.apache.curator.utils.ZKPaths;
+import org.apache.druid.client.DruidServer;
 import org.apache.druid.curator.CuratorTestBase;
 import org.apache.druid.guice.ServerTypeConfig;
 import org.apache.druid.java.util.common.Intervals;
@@ -67,7 +68,7 @@ public class ZkCoordinatorTest extends CuratorTestBase
       ServerType.HISTORICAL,
       "normal",
       0,
-      "_default_guild"
+      DruidServer.DEFAULT_GUILD
   );
   private final ZkPathsConfig zkPaths = new ZkPathsConfig()
   {
