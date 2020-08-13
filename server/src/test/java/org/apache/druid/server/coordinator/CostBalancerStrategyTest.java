@@ -21,6 +21,7 @@ package org.apache.druid.server.coordinator;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.druid.client.DruidServer;
 import org.apache.druid.client.ImmutableDruidDataSource;
 import org.apache.druid.client.ImmutableDruidServer;
 import org.apache.druid.client.ImmutableDruidServerTests;
@@ -79,7 +80,7 @@ public class CostBalancerStrategyTest
                   ServerType.HISTORICAL,
                   "hot",
                   1,
-                  "_default_guild"
+                  DruidServer.DEFAULT_GUILD
               ),
               3000L,
               ImmutableMap.of("DUMMY", dataSource),

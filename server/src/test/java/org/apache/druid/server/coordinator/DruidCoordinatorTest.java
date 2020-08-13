@@ -65,8 +65,11 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -79,6 +82,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  */
+@RunWith(Parameterized.class)
 public class DruidCoordinatorTest extends CuratorTestBase
 {
   private static final String LOADPATH = "/druid/loadqueue/localhost:1234";
@@ -103,6 +107,23 @@ public class DruidCoordinatorTest extends CuratorTestBase
   private ObjectMapper objectMapper;
   private DruidNode druidNode;
   private LatchableServiceEmitter serviceEmitter = new LatchableServiceEmitter();
+  private boolean guildReplicationEnabled;
+
+  public DruidCoordinatorTest(boolean guildReplicationEnabled)
+  {
+    this.guildReplicationEnabled = guildReplicationEnabled;
+  }
+
+  @Parameterized.Parameters(name = "{index}: guildReplicationEnabled:{0}")
+  public static Iterable<Object[]> data()
+  {
+    return Arrays.asList(
+        new Object[][]{
+            {false},
+            {true}
+        }
+    );
+  }
 
   @Before
   public void setUp() throws Exception
@@ -143,7 +164,7 @@ public class DruidCoordinatorTest extends CuratorTestBase
         null,
         10,
         new Duration("PT0s"),
-        false
+        guildReplicationEnabled
     );
     pathChildrenCache = new PathChildrenCache(
         curator,
@@ -266,7 +287,7 @@ public class DruidCoordinatorTest extends CuratorTestBase
     EasyMock.replay(dataSource);
     EasyMock.expect(druidServer.toImmutableDruidServer()).andReturn(
         new ImmutableDruidServer(
-            new DruidServerMetadata("from", null, null, 5L, ServerType.HISTORICAL, null, 0, "_default_guild"),
+            new DruidServerMetadata("from", null, null, 5L, ServerType.HISTORICAL, null, 0, DruidServer.DEFAULT_GUILD),
             1L,
             ImmutableMap.of("dummyDataSource", dataSource),
             1
@@ -278,7 +299,7 @@ public class DruidCoordinatorTest extends CuratorTestBase
 
     EasyMock.expect(druidServer2.toImmutableDruidServer()).andReturn(
         new ImmutableDruidServer(
-            new DruidServerMetadata("to", null, null, 5L, ServerType.HISTORICAL, null, 0, "_default_guild"),
+            new DruidServerMetadata("to", null, null, 5L, ServerType.HISTORICAL, null, 0, DruidServer.DEFAULT_GUILD),
             1L,
             ImmutableMap.of("dummyDataSource", dataSource),
             1
@@ -360,7 +381,7 @@ public class DruidCoordinatorTest extends CuratorTestBase
     EasyMock.replay(immutableDruidDataSource);
 
     // Setup ServerInventoryView
-    druidServer = new DruidServer("server1", "localhost", null, 5L, ServerType.HISTORICAL, tier, 0, "_default_guild");
+    druidServer = new DruidServer("server1", "localhost", null, 5L, ServerType.HISTORICAL, tier, 0, DruidServer.DEFAULT_GUILD);
     loadManagementPeons.put("server1", loadQueuePeon);
     EasyMock.expect(serverInventoryView.getInventory()).andReturn(
         ImmutableList.of(druidServer)
@@ -435,7 +456,7 @@ public class DruidCoordinatorTest extends CuratorTestBase
         ServerType.HISTORICAL,
         hotTierName,
         0,
-        "_default_guild"
+        DruidServer.DEFAULT_GUILD
     );
     final DruidServer coldServer = new DruidServer(
         "cold",
@@ -445,7 +466,7 @@ public class DruidCoordinatorTest extends CuratorTestBase
         ServerType.HISTORICAL,
         coldTierName,
         0,
-        "_default_guild"
+        DruidServer.DEFAULT_GUILD
     );
 
     final Map<String, DataSegment> dataSegments = ImmutableMap.of(
@@ -544,7 +565,7 @@ public class DruidCoordinatorTest extends CuratorTestBase
         ServerType.HISTORICAL,
         hotTierName,
         0,
-        "_default_guild"
+        DruidServer.DEFAULT_GUILD
     );
     final DruidServer coldServer = new DruidServer(
         "cold",
@@ -554,7 +575,7 @@ public class DruidCoordinatorTest extends CuratorTestBase
         ServerType.HISTORICAL,
         coldTierName,
         0,
-        "_default_guild"
+        DruidServer.DEFAULT_GUILD
     );
     final DruidServer brokerServer1 = new DruidServer(
         "broker1",
@@ -564,7 +585,7 @@ public class DruidCoordinatorTest extends CuratorTestBase
         ServerType.BROKER,
         tierName1,
         0,
-        "_default_guild"
+        DruidServer.DEFAULT_GUILD
     );
     final DruidServer brokerServer2 = new DruidServer(
         "broker2",
@@ -574,7 +595,7 @@ public class DruidCoordinatorTest extends CuratorTestBase
         ServerType.BROKER,
         tierName2,
         0,
-        "_default_guild"
+        DruidServer.DEFAULT_GUILD
     );
     final DruidServer peonServer = new DruidServer(
         "peon",
@@ -584,7 +605,7 @@ public class DruidCoordinatorTest extends CuratorTestBase
         ServerType.INDEXER_EXECUTOR,
         tierName2,
         0,
-        "_default_guild"
+        DruidServer.DEFAULT_GUILD
     );
 
     final Map<String, DataSegment> dataSegments = ImmutableMap.of(

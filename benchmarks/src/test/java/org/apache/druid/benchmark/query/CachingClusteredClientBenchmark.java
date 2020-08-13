@@ -616,7 +616,7 @@ public class CachingClusteredClientBenchmark
         ServerType.HISTORICAL,
         "default",
         0,
-        "_default_guild"
+        DruidServer.DEFAULT_GUILD
     );
   }
 }

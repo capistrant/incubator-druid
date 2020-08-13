@@ -30,6 +30,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.test.TestingCluster;
+import org.apache.druid.client.DruidServer;
 import org.apache.druid.curator.PotentiallyGzippedCompressionProvider;
 import org.apache.druid.curator.announcement.Announcer;
 import org.apache.druid.java.util.common.DateTimes;
@@ -122,7 +123,7 @@ public class BatchDataSegmentAnnouncerTest
             ServerType.HISTORICAL,
             "tier",
             0,
-            "_default_guild"
+            DruidServer.DEFAULT_GUILD
         ),
         new BatchDataSegmentAnnouncerConfig()
         {

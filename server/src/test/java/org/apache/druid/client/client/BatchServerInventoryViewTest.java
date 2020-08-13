@@ -131,7 +131,7 @@ public class BatchServerInventoryViewTest
         ServerType.HISTORICAL,
         "tier",
         0,
-        "_default_guild"
+        DruidServer.DEFAULT_GUILD
     );
 
     ZkPathsConfig zkPathsConfig = new ZkPathsConfig()
@@ -457,7 +457,7 @@ public class BatchServerInventoryViewTest
                           ServerType.HISTORICAL,
                           "tier",
                           0,
-                          "_default_guild"
+                          DruidServer.DEFAULT_GUILD
                       ),
                       new BatchDataSegmentAnnouncerConfig()
                       {

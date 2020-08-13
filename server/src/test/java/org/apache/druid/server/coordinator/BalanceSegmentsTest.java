@@ -38,6 +38,8 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,6 +52,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+@RunWith(Parameterized.class)
 public class BalanceSegmentsTest
 {
   private static final int MAX_SEGMENTS_TO_MOVE = 5;
@@ -73,6 +76,23 @@ public class BalanceSegmentsTest
   private ListeningExecutorService balancerStrategyExecutor;
   private BalancerStrategy balancerStrategy;
   private Set<String> broadcastDatasources;
+  private boolean guildReplicationEnabled;
+
+  public BalanceSegmentsTest(boolean guildReplicationEnabled)
+  {
+    this.guildReplicationEnabled = guildReplicationEnabled;
+  }
+
+  @Parameterized.Parameters(name = "{index}: guildReplicationEnabled:{0}")
+  public static Iterable<Object[]> data()
+  {
+    return Arrays.asList(
+        new Object[][]{
+            {false},
+            {true}
+        }
+    );
+  }
 
   @Before
   public void setUp()
@@ -204,7 +224,7 @@ public class BalanceSegmentsTest
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
         ImmutableList.of(peon1, peon2),
-        false
+        guildReplicationEnabled
     )
         .withBalancerStrategy(predefinedPickOrderStrategy)
         .withBroadcastDatasources(broadcastDatasources)
@@ -243,7 +263,7 @@ public class BalanceSegmentsTest
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2, druidServer3),
         ImmutableList.of(peon1, peon2, peon3),
-        true
+        guildReplicationEnabled
     )
         .withBalancerStrategy(predefinedPickOrderStrategy)
         .withBroadcastDatasources(broadcastDatasources)
@@ -277,6 +297,7 @@ public class BalanceSegmentsTest
         )
     );
 
+    // This test is designed only for validating guildReplication.on=true code paths
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2, druidServer3, druidServer4),
         ImmutableList.of(peon1, peon2, peon3, peon4),
@@ -318,6 +339,7 @@ public class BalanceSegmentsTest
         )
     );
 
+    // This test is designed only for validating guildReplication.on=true code paths
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2, druidServer3, druidServer4),
         ImmutableList.of(peon1, peon2, peon3, peon4),
@@ -375,7 +397,7 @@ public class BalanceSegmentsTest
         ImmutableList.of(druidServer1, druidServer2, druidServer3),
         ImmutableList.of(peon1, peon2, peon3),
         ImmutableList.of(false, true, false),
-        false
+        guildReplicationEnabled
     )
         .withDynamicConfigs(
             CoordinatorDynamicConfig.builder()
@@ -443,7 +465,7 @@ public class BalanceSegmentsTest
         ImmutableList.of(druidServer1, druidServer2, druidServer3),
         ImmutableList.of(peon1, peon2, peon3),
         ImmutableList.of(false, false, false),
-        false
+        guildReplicationEnabled
     )
         .withDynamicConfigs(
             CoordinatorDynamicConfig.builder()
@@ -491,7 +513,7 @@ public class BalanceSegmentsTest
         ImmutableList.of(druidServer1, druidServer2),
         ImmutableList.of(peon1, peon2),
         ImmutableList.of(false, true),
-        false
+        guildReplicationEnabled
     )
         .withBalancerStrategy(strategy)
         .withBroadcastDatasources(broadcastDatasources)
@@ -526,7 +548,7 @@ public class BalanceSegmentsTest
         ImmutableList.of(druidServer1, druidServer2),
         ImmutableList.of(peon1, peon2),
         ImmutableList.of(true, false),
-        false
+        guildReplicationEnabled
     )
         .withDynamicConfigs(CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(1).build())
         .withBalancerStrategy(strategy)
@@ -564,7 +586,7 @@ public class BalanceSegmentsTest
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
         ImmutableList.of(peon1, peon2),
-        false
+        guildReplicationEnabled
     )
         .withBalancerStrategy(predefinedPickOrderStrategy)
         .withBroadcastDatasources(broadcastDatasources)
@@ -605,7 +627,7 @@ public class BalanceSegmentsTest
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
         ImmutableList.of(peon1, peon2),
-        false
+        guildReplicationEnabled
     )
         .withBalancerStrategy(predefinedPickOrderStrategy)
         .withBroadcastDatasources(broadcastDatasources)
@@ -636,7 +658,7 @@ public class BalanceSegmentsTest
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
         ImmutableList.of(peon1, peon2),
-        false
+        guildReplicationEnabled
     ).build();
 
     params = new BalanceSegmentsTester(coordinator).run(params);
@@ -655,7 +677,10 @@ public class BalanceSegmentsTest
     // Mock stuff that the coordinator needs
     mockCoordinator(coordinator);
 
-    DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(druidServers, peons, false).build();
+    DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
+        druidServers,
+        peons,
+        guildReplicationEnabled).build();
 
     params = new BalanceSegmentsTester(coordinator).run(params);
     Assert.assertTrue(params.getCoordinatorStats().getTieredStat("movedCount", "normal") > 0);
@@ -814,7 +839,7 @@ public class BalanceSegmentsTest
         ImmutableList.of(druidServer1, druidServer2, druidServer3),
         ImmutableList.of(peon1, peon2, peon3),
         ImmutableList.of(false, true, false),
-        false
+        guildReplicationEnabled
     )
         .withDynamicConfigs(
             CoordinatorDynamicConfig.builder()

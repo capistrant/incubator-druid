@@ -46,13 +46,17 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+@RunWith(Parameterized.class)
 public class LoadQueuePeonTest extends CuratorTestBase
 {
   private static final String LOAD_QUEUE_PATH = "/druid/loadqueue/localhost:1234";
@@ -61,6 +65,23 @@ public class LoadQueuePeonTest extends CuratorTestBase
 
   private LoadQueuePeon loadQueuePeon;
   private PathChildrenCache loadQueueCache;
+  private boolean guildReplicationEnabled;
+
+  public LoadQueuePeonTest(boolean guildReplicationEnabled)
+  {
+    this.guildReplicationEnabled = guildReplicationEnabled;
+  }
+
+  @Parameterized.Parameters(name = "{index}: guildReplicationEnabled:{0}")
+  public static Iterable<Object[]> data()
+  {
+    return Arrays.asList(
+        new Object[][]{
+            {false},
+            {true}
+        }
+    );
+  }
 
   @Before
   public void setUp() throws Exception
@@ -97,7 +118,7 @@ public class LoadQueuePeonTest extends CuratorTestBase
             null,
             10,
             Duration.millis(0),
-            false
+            guildReplicationEnabled
         )
     );
 
@@ -292,7 +313,7 @@ public class LoadQueuePeonTest extends CuratorTestBase
             null,
             10,
             new Duration("PT1s"),
-            false
+            guildReplicationEnabled
         )
     );
 

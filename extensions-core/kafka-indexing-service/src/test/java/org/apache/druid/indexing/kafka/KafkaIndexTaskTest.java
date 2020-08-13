@@ -32,6 +32,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.curator.test.TestingCluster;
+import org.apache.druid.client.DruidServer;
 import org.apache.druid.client.cache.CacheConfig;
 import org.apache.druid.client.cache.CachePopulatorStats;
 import org.apache.druid.client.cache.MapCache;
@@ -2714,7 +2715,7 @@ public class KafkaIndexTaskTest extends SeekableStreamIndexTaskTestBase
         EasyMock.createNiceMock(DruidNodeAnnouncer.class),
         EasyMock.createNiceMock(DruidNode.class),
         new LookupNodeService("tier"),
-        new DataNodeService("tier", 1, ServerType.INDEXER_EXECUTOR, 0, "_default_guild"),
+        new DataNodeService("tier", 1, ServerType.INDEXER_EXECUTOR, 0, DruidServer.DEFAULT_GUILD),
         new SingleFileTaskReportFileWriter(reportsFile),
         null
     );

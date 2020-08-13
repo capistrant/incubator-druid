@@ -36,11 +36,15 @@ import org.apache.druid.timeline.partition.NoneShardSpec;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+@RunWith(Parameterized.class)
 public class BroadcastDistributionRuleTest
 {
   private DruidCluster druidCluster;
@@ -54,6 +58,23 @@ public class BroadcastDistributionRuleTest
   private ServerHolder activeServer;
   private ServerHolder decommissioningServer1;
   private ServerHolder decommissioningServer2;
+  private boolean guildReplicationEnabled;
+
+  public BroadcastDistributionRuleTest(boolean guildReplicationEnabled)
+  {
+    this.guildReplicationEnabled = guildReplicationEnabled;
+  }
+
+  @Parameterized.Parameters(name = "{index}: guildReplicationEnabled:{0}")
+  public static Iterable<Object[]> data()
+  {
+    return Arrays.asList(
+        new Object[][]{
+            {false},
+            {true}
+        }
+    );
+  }
 
   @Before
   public void setUp()
@@ -283,6 +304,7 @@ public class BroadcastDistributionRuleTest
         null,
         makeCoordinartorRuntimeParams(
             druidCluster,
+            guildReplicationEnabled,
             smallSegment,
             largeSegments.get(0),
             largeSegments.get(1),
@@ -311,13 +333,15 @@ public class BroadcastDistributionRuleTest
 
   private static DruidCoordinatorRuntimeParams makeCoordinartorRuntimeParams(
       DruidCluster druidCluster,
+      boolean guildReplicationEnabled,
       DataSegment... usedSegments
   )
   {
     return CoordinatorRuntimeParamsTestHelpers
         .newBuilder()
         .withDruidCluster(druidCluster)
-        .withSegmentReplicantLookup(SegmentReplicantLookup.make(druidCluster, false))
+        .withGuildReplicationDirective(guildReplicationEnabled)
+        .withSegmentReplicantLookup(SegmentReplicantLookup.make(druidCluster, guildReplicationEnabled))
         .withUsedSegmentsInTest(usedSegments)
         .build();
   }
@@ -345,6 +369,7 @@ public class BroadcastDistributionRuleTest
         null,
         makeCoordinartorRuntimeParams(
             secondCluster,
+            guildReplicationEnabled,
             smallSegment,
             largeSegments.get(0),
             largeSegments.get(1)
@@ -370,6 +395,7 @@ public class BroadcastDistributionRuleTest
         null,
         makeCoordinartorRuntimeParams(
             druidCluster,
+            guildReplicationEnabled,
             smallSegment,
             largeSegments.get(0),
             largeSegments.get(1),
@@ -405,6 +431,7 @@ public class BroadcastDistributionRuleTest
         null,
         makeCoordinartorRuntimeParams(
             druidCluster,
+            guildReplicationEnabled,
             smallSegment,
             largeSegments.get(0),
             largeSegments.get(1),

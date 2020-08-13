@@ -142,7 +142,7 @@ public class CachingCostBalancerStrategyTest
         ServerType.HISTORICAL,
         "normal",
         0,
-        "_default_guild"
+        DruidServer.DEFAULT_GUILD
     );
     createDataSegments(numberOfSegments, random, referenceTime)
         .forEach(druidServer::addDataSegment);
