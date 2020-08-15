@@ -207,8 +207,12 @@ public class BalanceSegments implements CoordinatorDuty
         final DataSegment segmentToMove = segmentToMoveHolder.getSegment();
         final ImmutableDruidServer fromServer = segmentToMoveHolder.getFromServer();
 
+        // The list of ServerHolder objects that are candidates to recieve the moved segment
         List<ServerHolder> filteredToMoveTo;
+
         if (!params.isGuildReplicationEnabled()) {
+          // If the cluster is not using guild replication, filteredMoveTo will be all servers that are not serving the
+          // segment and also have a non-full load queue; plus the server currently holding this segment.
           filteredToMoveTo =
               toMoveTo.stream()
                       .filter(s -> s.getServer().equals(fromServer) ||
@@ -216,21 +220,24 @@ public class BalanceSegments implements CoordinatorDuty
                                     (maxToLoad <= 0 || s.getNumberOfSegmentsInQueue() < maxToLoad)))
                       .collect(Collectors.toList());
         } else {
+          // The set of guilds who have at least one ServerHolder serving this segment
           final Set<String> usedGuildSet =
               (params.getSegmentReplicantLookup()
                      .getGuildSetForSegment(segmentToMove.getId()) == null) ? new HashSet<>()
                                                                             : params.getSegmentReplicantLookup()
                                                                                     .getGuildSetForSegment(
                                                                                         segmentToMove.getId());
-          final int guildReplicationFactor =
-              (params.getSegmentReplicantLookup()
-                     .getGuildMapForSegment(segmentToMove.getId())
-                     .get(fromServer.getGuild()) == null) ? 0
-                                                          : params.getSegmentReplicantLookup()
-                                                                  .getGuildMapForSegment(segmentToMove.getId())
-                                                                  .get(fromServer.getGuild());
-          // We filter out servers in any guild hosting the segment of interes.
-          // We also filter out the rest of the servers in the from guild if there is > 1 replica in the guild.
+
+          // The replication factor for this segment on the guild that the segment we are moving lives on.
+          // The statement should never be null, but we protect against that in case the guild data structure is invalid
+          // in regards to this segment.
+          final int guildReplicationFactor = params
+              .getSegmentReplicantLookup()
+              .getGuildMapForSegment(segmentToMove.getId()).getOrDefault(fromServer.getGuild(), 1);
+
+          // filteredToMove to will be all servers on a guild that is not hosting this segment, plus all servers on the
+          // guild hosting the segment we are moving if the replication factor on the guild is <= 1. The ServerHolder
+          // serving the segment we are moving is also kept in filteredMoveTo
           filteredToMoveTo =
               toMoveTo.stream()
                       .filter(s -> s.getServer().equals(fromServer) ||
@@ -240,13 +247,15 @@ public class BalanceSegments implements CoordinatorDuty
                                    (!usedGuildSet.contains(s.getServer().getGuild())) &&
                                    (maxToLoad <= 0 || s.getNumberOfSegmentsInQueue() < maxToLoad))
                       .collect(Collectors.toList());
-          // If there are no candidates, we will evaluate any server that is not already serving the segment
-          if (filteredToMoveTo.size() == 1) {
-            log.debug(
-                "Segment [%s] is allowing moves to used guilds because filtering out used guilds and the from guild if"
-                +
-                " the guild replication factor > 1 left us with only one option, not moving the segment",
-                segmentToMove.getId()
+
+          if (filteredToMoveTo.size() == 1 && guildReplicationFactor > 1) {
+            // The only candidate to move the segment to is the segment currently hosting it (no move).
+            // However, the guildReplicationFactor > 1 so moving to any server not hosting the segment will not affect
+            // guild replication while also helping balance the cluster, so we will backtrack and allow the segment to
+            // be moved to any segment not currently hosting the segment (while also having a non-full load queue)
+            log.debug("Segment [%s] is going to allow moves to any server not currently serving the segment because"
+                      + "filtering for guild aware replication left us with no options to move the segment",
+                      segmentToMove.getId()
             );
             filteredToMoveTo =
                 toMoveTo.stream()
