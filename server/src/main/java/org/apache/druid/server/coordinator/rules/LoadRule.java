@@ -86,7 +86,7 @@ public abstract class LoadRule implements Rule
       if (params.getSegmentReplicantLookup().getGuildMapForSegment(segment.getId()) != null) {
         guildReplicants.putAll(params.getSegmentReplicantLookup().getGuildMapForSegment(segment.getId()));
       }
-      // Get Guilds serving segment
+      // get the "snapshot" of guilds serving a segment for guild aware assignment.
       if (params.getSegmentReplicantLookup().getGuildSetForSegment(segment.getId()) != null) {
         usedGuildSet.addAll(params.getSegmentReplicantLookup().getGuildSetForSegment(segment.getId()));
       }
@@ -158,8 +158,9 @@ public abstract class LoadRule implements Rule
 
       int numAssigned = 1; // 1 replica (i.e., primary replica) already assigned
 
-      // Update Guild DataStructures once we have assigned a primary
       if (params.isGuildReplicationEnabled()) {
+        // If guild aware replication is enabled. We need to update the Set of guilds hosting the segment as well as
+        // the replicant map for this segment.
         usedGuildSet.add(primaryHolderToLoad.getServer().getGuild());
         guildReplicants.put(
             primaryHolderToLoad.getServer().getGuild(),
@@ -325,7 +326,8 @@ public abstract class LoadRule implements Rule
     }
 
     // We say "suspected unused guild" because if we are assigning more than one replica in the below loop
-    // anything beyond the first replica might go to a used guild.
+    // anything beyond the first replica might go to a used guild since we are not updating the partitioned ServerHolder
+    // lists after each replica assignment.
     String noUnusedGuildAvailability = StringUtils.format(
         "No available [%s] servers or node capacity to assign segment[%s] on a suspected unused guild!",
         tier,
@@ -347,7 +349,8 @@ public abstract class LoadRule implements Rule
       return 0;
     }
 
-    // Split the Holders depending on if they are a part of guild that is already serving the DataSegment
+    // If guild replication is enabled, we split the candidate ServerHolders by partitioning on whether or not
+    // the candidate's guild is home to the segment we are loading.
     List<ServerHolder> usedGuildHolders = new ArrayList<>();
     List<ServerHolder> unusedGuildHolders = new ArrayList<>();
     if (params.isGuildReplicationEnabled()) {
@@ -364,31 +367,40 @@ public abstract class LoadRule implements Rule
         return numAssigned;
       }
 
+      // Retrieves from cache if available
       ServerHolder holder = strategyCache.remove(tier);
 
       if (!params.isGuildReplicationEnabled()) {
+        // If guild replication is not enabled, we either use the ServerHolder from cache or fetch a holder using
+        // the BalancerStrategy.
         if (holder == null) {
           holder = params.getBalancerStrategy().findNewSegmentHomeReplicator(segment, holders);
         }
         holders.remove(holder);
       } else {
+        // If guild replication is enabled, we prefer to load the segment to an unused guild, but will load to a used
+        // guild if there are no ServerHolders on an unused guild.
+
         // We don't want to used the cached holder if it is on a used guild. We defer to using later if needed.
         if (holder != null && usedGuildSet.contains(holder.getServer().getGuild())) {
           log.debug(
               "putting cached entry back in cache because it is on a used guild." +
-              " We will use it if we have to try used guilds");
+              " We will use it if we have to try used guilds"
+          );
           strategyCache.put(tier, holder);
           holder = null;
         }
 
-        // Try to find holder on unused Guild
+        // Try to find holder on unused guild
         if (holder == null && !unusedGuildHolders.isEmpty()) {
           holder = params.getBalancerStrategy().findNewSegmentHomeReplicator(segment, unusedGuildHolders);
           unusedGuildHolders.remove(holder);
         }
 
+        // If no ServerHolder was available on an unused guild, we must look for a ServerHolder on a used guild.
         if (holder == null) {
           log.warn(noUnusedGuildAvailability);
+          // We try the cache again just in case there is a cached ServerHolder from a used guild.
           holder = strategyCache.remove(tier);
           if (holder == null) {
             holder = params.getBalancerStrategy().findNewSegmentHomeReplicator(segment, usedGuildHolders);
@@ -396,10 +408,12 @@ public abstract class LoadRule implements Rule
           usedGuildHolders.remove(holder);
         }
 
+        // If we found a ServerHolder to load to, we update our guild replication data structures.
         if (holder != null) {
           usedGuildSet.add(holder.getServer().getGuild());
           guildReplicants.put(
-              holder.getServer().getGuild(), guildReplicants.getOrDefault(holder.getServer().getGuild(), 0) + 1);
+              holder.getServer().getGuild(), guildReplicants.getOrDefault(holder.getServer().getGuild(), 0) + 1
+          );
         }
       }
 
@@ -493,8 +507,7 @@ public abstract class LoadRule implements Rule
       Map<String, Integer> guildReplicants
   )
   {
-    // We need to split the decomissioning servers from the active servers,and then further split the active servers
-    // into servers whose guild hosts more than 1 replica of a segment vs guilds who serve only 1 replica of a segment
+    // We need to split the decomissioning servers from the active servers.
     Map<Boolean, HashSet<ServerHolder>> partitions =
         holdersInTier
             .stream()
@@ -504,24 +517,29 @@ public abstract class LoadRule implements Rule
 
     TreeSet<ServerHolder> decommissioningServers = new TreeSet<>(partitions.get(true));
 
-    // activeServers1 is all active servers if not using guildReplication and guilds with > 1 replicant if using guildReplication
+    // activeServers1 is all active servers if not using guild replication and guilds with > 1 replicant if using it.
     TreeSet<ServerHolder> activeServers1;
-    // activeServers2 is only populated if using guildreplication. It contains servers with guilds that have <= 1 replicant
+    // activeServers2 is only populated if using guild replication. It contains servers on guilds with <= 1 replicant
     TreeSet<ServerHolder> activeServers2;
 
     if (guildReplicants == null) {
+      // guild replication is not enabled so all active servers go into activeServers1 with activeServers2 empty
       activeServers1 = new TreeSet<>(partitions.get(false));
       activeServers2 = new TreeSet<>();
     } else {
+      // guild replication is enabled. activeServers1 will be servers on a guild with > 1 replicant, making them more
+      // appealing for drops in terms of maintaining guild distribution of a segment.
+
+      // Predicate for determining replication factor of a guild. Split out from stream for readability.
       Predicate<ServerHolder> guildReplicationFactorPredicate = s -> {
-        int guildReplicantCount =
-            (guildReplicants.get(s.getServer().getGuild()) == null) ? 0 : guildReplicants.get(s.getServer().getGuild());
+        int guildReplicantCount = guildReplicants.getOrDefault(s.getServer().getGuild(), 1);
         return guildReplicantCount > 1;
       };
 
       Map<Boolean, TreeSet<ServerHolder>> guildPartitions =
           partitions.get(false).stream().collect(
-              Collectors.partitioningBy(guildReplicationFactorPredicate, Collectors.toCollection(TreeSet::new)));
+              Collectors.partitioningBy(guildReplicationFactorPredicate, Collectors.toCollection(TreeSet::new))
+          );
 
       activeServers1 = guildPartitions.get(true);
       activeServers2 = guildPartitions.get(false);
