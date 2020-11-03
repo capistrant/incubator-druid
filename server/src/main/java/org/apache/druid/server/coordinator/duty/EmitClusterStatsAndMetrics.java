@@ -36,6 +36,8 @@ import org.apache.druid.server.coordinator.rules.LoadRule;
 import org.apache.druid.timeline.DataSegment;
 import org.apache.druid.timeline.VersionedIntervalTimeline;
 
+import java.util.stream.Collectors;
+
 /**
  * Emits stats of the cluster and metrics of the coordination (including segment balancing) process.
  */
@@ -434,6 +436,27 @@ public class EmitClusterStatsAndMetrics implements CoordinatorDuty
           );
         }
     );
+
+    // Emit Guild Replication Metrics
+    if (params.isGuildReplicationEnabled()) {
+      // TODO this might be super inneficient, maybe make it optional?
+      params.getUsedSegmentsTimelinesPerDataSource().forEach(
+          (String dataSource, VersionedIntervalTimeline<String, DataSegment> dataSourceWithUsedSegments) -> {
+            long totalSegmentsInViolationOfGuildReplicationMinimums = dataSourceWithUsedSegments
+                .iterateAllObjects()
+                .stream()
+                .filter(s -> params.getSegmentReplicantLookup().getGuildSetForSegment(s.getId()).size() <= 1).count();
+            emitter.emit(
+                new ServiceMetricEvent.Builder()
+                    .setDimension(DruidMetrics.DATASOURCE, dataSource)
+                    .build(
+                        "guild/replicationMinimumViolation/count",
+                        totalSegmentsInViolationOfGuildReplicationMinimums
+                    )
+            );
+          }
+      );
+    }
 
     return params;
   }
