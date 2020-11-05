@@ -270,9 +270,10 @@ export const CoordinatorDynamicConfigDialog = React.memo(function CoordinatorDyn
             defaultValue: 0,
             info: (
               <>
-                Only used if <Code>druid.coordinator.guildReplication.on=true</Code>. The maxiumum
-                number of segments that may be moved in this phase is the specified percentage of
-                the max number of segments remaining to be moved after segments are moved from
+                Only used if <Code>druid.coordinator.guildReplication.on=true</Code>. Setting this
+                to a value greater than 0 enables a special phase of balancing. The maxiumum number
+                of segments that may be moved in this phase is the specified percentage of the max
+                number of segments remaining to be moved after segments are moved from
                 decommissioning servers. This phase will only consider segments for moving that are
                 located on fewer than two guilds. By modifying this value, an operator can emphasize
                 or de-emphasize the balancers priority for achieving a state of zero segments who
