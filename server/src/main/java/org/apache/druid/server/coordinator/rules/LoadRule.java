@@ -82,12 +82,10 @@ public abstract class LoadRule implements Rule
       targetReplicants.putAll(getTieredReplicants());
       currentReplicants.putAll(params.getSegmentReplicantLookup().getClusterTiers(segment.getId()));
 
-      // get the "snapshot" of guildReplicants for guild aware assignment.
-      if (params.getSegmentReplicantLookup().getGuildMapForSegment(segment.getId()) != null) {
+      if (params.isGuildReplicationEnabled()) {
+        // get the "snapshot" of guildReplicants for guild aware assignment.
         guildReplicants.putAll(params.getSegmentReplicantLookup().getGuildMapForSegment(segment.getId()));
-      }
-      // get the "snapshot" of guilds serving a segment for guild aware assignment.
-      if (params.getSegmentReplicantLookup().getGuildSetForSegment(segment.getId()) != null) {
+        // get the "snapshot" of guilds serving a segment for guild aware assignment.
         usedGuildSet.addAll(params.getSegmentReplicantLookup().getGuildSetForSegment(segment.getId()));
       }
 
@@ -159,8 +157,8 @@ public abstract class LoadRule implements Rule
       int numAssigned = 1; // 1 replica (i.e., primary replica) already assigned
 
       if (params.isGuildReplicationEnabled()) {
-        // If guild aware replication is enabled. We need to update the Set of guilds hosting the segment as well as
-        // the replicant map for this segment.
+        // If guild aware replication is enabled. We need to update the Set of guilds
+        // hosting the segment as well as the replicant map for this segment.
         usedGuildSet.add(primaryHolderToLoad.getServer().getGuild());
         guildReplicants.put(
             primaryHolderToLoad.getServer().getGuild(),
@@ -385,7 +383,7 @@ public abstract class LoadRule implements Rule
         if (holder != null && usedGuildSet.contains(holder.getServer().getGuild())) {
           log.debug(
               "putting cached entry back in cache because it is on a used guild." +
-              " We will use it if we have to try used guilds"
+              " It may be used in the future if there are no destionations on unused guilds."
           );
           strategyCache.put(tier, holder);
           holder = null;
@@ -412,7 +410,8 @@ public abstract class LoadRule implements Rule
         if (holder != null) {
           usedGuildSet.add(holder.getServer().getGuild());
           guildReplicants.put(
-              holder.getServer().getGuild(), guildReplicants.getOrDefault(holder.getServer().getGuild(), 0) + 1
+              holder.getServer().getGuild(),
+              guildReplicants.getOrDefault(holder.getServer().getGuild(), 0) + 1
           );
         }
       }
@@ -517,7 +516,8 @@ public abstract class LoadRule implements Rule
 
     TreeSet<ServerHolder> decommissioningServers = new TreeSet<>(partitions.get(true));
 
-    // activeServers1 is all active servers if not using guild replication and guilds with > 1 replicant if using it.
+    // activeServers1 is all active servers if not using guild replication and servers
+    // whose guild has > 1 replicant if using guild replication.
     TreeSet<ServerHolder> activeServers1;
     // activeServers2 is only populated if using guild replication. It contains servers on guilds with <= 1 replicant
     TreeSet<ServerHolder> activeServers2;
@@ -528,7 +528,7 @@ public abstract class LoadRule implements Rule
       activeServers2 = new TreeSet<>();
     } else {
       // guild replication is enabled. activeServers1 will be servers on a guild with > 1 replicant, making them more
-      // appealing for drops in terms of maintaining guild distribution of a segment.
+      // appealing for drops due to the dsire to maintain guild distribution of a segment.
 
       // Predicate for determining replication factor of a guild. Split out from stream for readability.
       Predicate<ServerHolder> guildReplicationFactorPredicate = s -> {
@@ -541,18 +541,24 @@ public abstract class LoadRule implements Rule
               Collectors.partitioningBy(guildReplicationFactorPredicate, Collectors.toCollection(TreeSet::new))
           );
 
+      // ServerHolder objects on a guild with replicant count > 1
       activeServers1 = guildPartitions.get(true);
+      // ServerHolder objects on a guild with replicant count <= 1
       activeServers2 = guildPartitions.get(false);
     }
 
+    // First, drop from decommissioning servers if there are any.
     int left = dropSegmentFromServers(balancerStrategy, segment, decommissioningServers, numToDrop);
     if (left > 0) {
+      // Second, drop from servers whose guild holds > 1 replicant. activeServers1 is ordered Set.
       left = dropSegmentFromServers(balancerStrategy, segment, activeServers1, left);
     }
     if (left > 0) {
+      // Third, drop from servers whose guild holds <= 1 replicant. activeServers2 is ordered Set.
       left = dropSegmentFromServers(balancerStrategy, segment, activeServers2, left);
     }
     if (left != 0) {
+      // There are replicants left to drop, but no servers serving the segment.
       log.warn("I have no servers serving [%s]?", segment.getId());
     }
     return numToDrop - left;

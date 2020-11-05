@@ -36,8 +36,6 @@ import org.apache.druid.server.coordinator.rules.LoadRule;
 import org.apache.druid.timeline.DataSegment;
 import org.apache.druid.timeline.VersionedIntervalTimeline;
 
-import java.util.stream.Collectors;
-
 /**
  * Emits stats of the cluster and metrics of the coordination (including segment balancing) process.
  */
@@ -437,9 +435,9 @@ public class EmitClusterStatsAndMetrics implements CoordinatorDuty
         }
     );
 
-    // Emit Guild Replication Metrics
-    if (params.isGuildReplicationEnabled()) {
-      // TODO this might be super inneficient, maybe make it optional?
+    // Emit Guild Replication Metrics. There is a guard on this controlled by Coordinator Dynamic Config due to the
+    // cost involved in calculating these metrics.
+    if (params.isGuildReplicationEnabled() && params.getCoordinatorDynamicConfig().isEmitGuildReplicationMetrics()) {
       params.getUsedSegmentsTimelinesPerDataSource().forEach(
           (String dataSource, VersionedIntervalTimeline<String, DataSegment> dataSourceWithUsedSegments) -> {
             long totalSegmentsInViolationOfGuildReplicationMinimums = dataSourceWithUsedSegments

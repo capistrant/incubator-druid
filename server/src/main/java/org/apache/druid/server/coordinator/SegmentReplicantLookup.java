@@ -36,6 +36,7 @@ import java.util.SortedSet;
 
 /**
  * A lookup for the number of replicants of a given segment for a certain tier.
+ * A lookup for the guildReplicaiton information of a given segment.
  */
 public class SegmentReplicantLookup
 {
@@ -170,23 +171,34 @@ public class SegmentReplicantLookup
     return perTier;
   }
 
-  @Nullable
+  /**
+   * Return {@link Map} with K:V Pairs of type String:Integer that represent
+   * a guild name and the number of replicas on that guild as it pertains to
+   * the provided segmentId. If Map for this segment does not exist, return
+   * an empty Map.
+   *
+   * @param segmentId ID of segment to lookup
+   * @return {@link Map} that maps gulid name to the number of replicas on that guild.
+   */
   public Map<String, Integer> getGuildMapForSegment(SegmentId segmentId)
   {
     if (historicalGuildDistribution == null) {
-      return null;
+      return new HashMap<>();
     }
     Map<String, Integer> retVal = historicalGuildDistribution.row(segmentId);
     return (retVal == null) ? new HashMap<>() : retVal;
   }
 
-  @Nullable
+  /**
+   * Return {@link Set} of guild names serving segment. If no guild set exists,
+   * return an empty Set.
+   *
+   * @param segmentId ID of segment we are looking up.
+   * @return {@link Set} containing names of guilds serving specified segment.
+   */
   public Set<String> getGuildSetForSegment(SegmentId segmentId)
   {
     Map<String, Integer> map = getGuildMapForSegment(segmentId);
-    if (map == null) {
-      return null;
-    }
     return (map.isEmpty()) ? new HashSet<>() : map.keySet();
   }
 

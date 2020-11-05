@@ -264,6 +264,37 @@ export const CoordinatorDynamicConfigDialog = React.memo(function CoordinatorDyn
               </>
             ),
           },
+          {
+            name: 'guildReplicationMaxPercentOfMaxSegmentsToMove',
+            type: 'number',
+            defaultValue: 50,
+            info: (
+              <>
+                Only used if <Code>druid.coordinator.guildReplication.on=true</Code>. The maxiumum
+                number of segments that may be moved in this phase is the specified percentage of
+                the max number of segments remaining to be moved after segments are moved from
+                decommissioning servers. This phase will only consider segments for moving that are
+                located on fewer than two guilds. By modifying this value, an operator can emphasize
+                or de-emphasize the balancers priority for achieving a state of zero segments who
+                lack distribution across multiple guilds. The higher the value, the more segments
+                that will be moved to gain guild distribution. The value must be between 0 and 100.
+                0 meaning that this phase is skipped.
+              </>
+            ),
+          },
+          {
+            name: 'emitGuildReplicationMetrics',
+            type: 'boolean',
+            defaultValue: false,
+            info: (
+              <>
+                Only used if <Code>druid.coordinator.guildReplication.on=true</Code>. Emits guild
+                replication metrics as a part of the Coordinator duty for emitting metrics and
+                stats. It must be noted that computing these metrics results in compute overhead for
+                the coordinator.
+              </>
+            ),
+          },
         ]}
         model={dynamicConfig}
         onChange={m => setDynamicConfig(m)}

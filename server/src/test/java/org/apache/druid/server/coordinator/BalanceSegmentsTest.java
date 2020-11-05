@@ -76,7 +76,7 @@ public class BalanceSegmentsTest
   private ListeningExecutorService balancerStrategyExecutor;
   private BalancerStrategy balancerStrategy;
   private Set<String> broadcastDatasources;
-  private boolean guildReplicationEnabled;
+  private final boolean guildReplicationEnabled;
 
   public BalanceSegmentsTest(boolean guildReplicationEnabled)
   {
@@ -403,6 +403,7 @@ public class BalanceSegmentsTest
             CoordinatorDynamicConfig.builder()
                                     .withMaxSegmentsToMove(3)
                                     .withDecommissioningMaxPercentOfMaxSegmentsToMove(60)
+                                    .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
                                     .build() // ceil(3 * 0.6) = 2 segments from decommissioning servers
         )
         .withBalancerStrategy(strategy)
@@ -471,6 +472,7 @@ public class BalanceSegmentsTest
             CoordinatorDynamicConfig.builder()
                                     .withMaxSegmentsToMove(3)
                                     .withDecommissioningMaxPercentOfMaxSegmentsToMove(9)
+                                    .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
                                     .build()
         )
         .withBalancerStrategy(strategy)
@@ -550,7 +552,12 @@ public class BalanceSegmentsTest
         ImmutableList.of(true, false),
         guildReplicationEnabled
     )
-        .withDynamicConfigs(CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(1).build())
+        .withDynamicConfigs(
+            CoordinatorDynamicConfig.builder()
+                                    .withMaxSegmentsToMove(1)
+                                    .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
+                                    .build()
+        )
         .withBalancerStrategy(strategy)
         .withBroadcastDatasources(broadcastDatasources)
         .build();
@@ -595,6 +602,7 @@ public class BalanceSegmentsTest
                 .builder()
                 .withMaxSegmentsToMove(MAX_SEGMENTS_TO_MOVE)
                 .withMaxSegmentsInNodeLoadingQueue(1)
+                .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
                 .build()
         )
         .build();
@@ -632,9 +640,10 @@ public class BalanceSegmentsTest
         .withBalancerStrategy(predefinedPickOrderStrategy)
         .withBroadcastDatasources(broadcastDatasources)
         .withDynamicConfigs(
-            CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(
-                2
-            ).build()
+            CoordinatorDynamicConfig.builder()
+                                    .withMaxSegmentsToMove(2)
+                                    .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
+                                    .build()
         )
         .build();
 
@@ -677,10 +686,16 @@ public class BalanceSegmentsTest
     // Mock stuff that the coordinator needs
     mockCoordinator(coordinator);
 
-    DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
-        druidServers,
-        peons,
-        guildReplicationEnabled).build();
+    DruidCoordinatorRuntimeParams params =
+        defaultRuntimeParamsBuilder(
+            druidServers,
+            peons,
+            guildReplicationEnabled
+        ).withDynamicConfigs(
+            CoordinatorDynamicConfig.builder()
+                                    .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
+                                    .build()
+        ).build();
 
     params = new BalanceSegmentsTester(coordinator).run(params);
     Assert.assertTrue(params.getCoordinatorStats().getTieredStat("movedCount", "normal") > 0);
@@ -727,7 +742,12 @@ public class BalanceSegmentsTest
                 .collect(Collectors.toMap(i -> String.valueOf(i + 1), peons::get))
         )
         .withUsedSegmentsInTest(segments)
-        .withDynamicConfigs(CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(MAX_SEGMENTS_TO_MOVE).build())
+        .withDynamicConfigs(
+            CoordinatorDynamicConfig.builder()
+                                    .withMaxSegmentsToMove(MAX_SEGMENTS_TO_MOVE)
+                                    .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
+                                    .build()
+        )
         .withBroadcastDatasources(broadcastDatasources)
         .withBalancerStrategy(balancerStrategy)
         .withGuildReplicationDirective(guildReplicationEnabled)
@@ -808,6 +828,12 @@ public class BalanceSegmentsTest
     }
 
     @Override
+    public BalancerSegmentHolder pickSegmentToMove(List<ServerHolder> serverHolders, Set<String> broadcastDatasources, DruidCoordinatorRuntimeParams params)
+    {
+      return pickOrder.get(pickCounter.getAndIncrement() % pickOrder.size());
+    }
+
+    @Override
     public void emitStats(String tier, CoordinatorStats stats, List<ServerHolder> serverHolderList)
     {
       delegate.emitStats(tier, stats, serverHolderList);
@@ -845,6 +871,7 @@ public class BalanceSegmentsTest
             CoordinatorDynamicConfig.builder()
                                     .withMaxSegmentsToMove(1)
                                     .withDecommissioningMaxPercentOfMaxSegmentsToMove(percent)
+                                    .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
                                     .build()
         )
         .withBalancerStrategy(strategy)
