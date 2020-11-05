@@ -166,7 +166,7 @@ exports[`coordinator dynamic config matches snapshot 1`] = `
           "type": "number",
         },
         Object {
-          "defaultValue": 50,
+          "defaultValue": 0,
           "info": <React.Fragment>
             Only used if 
             <Unknown>

@@ -267,7 +267,7 @@ export const CoordinatorDynamicConfigDialog = React.memo(function CoordinatorDyn
           {
             name: 'guildReplicationMaxPercentOfMaxSegmentsToMove',
             type: 'number',
-            defaultValue: 50,
+            defaultValue: 0,
             info: (
               <>
                 Only used if <Code>druid.coordinator.guildReplication.on=true</Code>. The maxiumum

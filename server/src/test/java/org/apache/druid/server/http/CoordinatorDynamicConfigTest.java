@@ -228,7 +228,7 @@ public class CoordinatorDynamicConfigTest
   {
     CoordinatorDynamicConfig defaultConfig = CoordinatorDynamicConfig.builder().build();
     ImmutableSet<String> emptyList = ImmutableSet.of();
-    assertConfig(defaultConfig, 900000, 524288000, 100, 5, 15, 10, 1, false, emptyList, false, 0, emptyList, 70, false, 50, false);
+    assertConfig(defaultConfig, 900000, 524288000, 100, 5, 15, 10, 1, false, emptyList, false, 0, emptyList, 70, false, 0, false);
   }
 
   @Test

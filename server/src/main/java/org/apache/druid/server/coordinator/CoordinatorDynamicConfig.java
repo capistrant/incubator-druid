@@ -477,7 +477,7 @@ public class CoordinatorDynamicConfig
     private static final int DEFAULT_MAX_SEGMENTS_IN_NODE_LOADING_QUEUE = 0;
     private static final int DEFAULT_DECOMMISSIONING_MAX_SEGMENTS_TO_MOVE_PERCENT = 70;
     private static final boolean DEFAULT_PAUSE_COORDINATION = false;
-    private static final int DEFAULT_GUILD_REPLICATION_MAX_SEGMENTS_TOMOVE_PERCENT = 50;
+    private static final int DEFAULT_GUILD_REPLICATION_MAX_SEGMENTS_TOMOVE_PERCENT = 0;
     private static final boolean DEFAULT_EMIT_GUILD_REPLICATION_METRICS = false;
 
     private Long leadingTimeMillisBeforeCanMarkAsUnusedOvershadowedSegments;
