@@ -36,8 +36,12 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ReservoirSegmentSamplerTest
 {
@@ -55,11 +59,20 @@ public class ReservoirSegmentSamplerTest
   private DataSegment segment2;
   private DataSegment segment3;
   private DataSegment segment4;
+
+  private Set<String> segment1GuildSet;
+  private Set<String> segment2GuildSet;
+  private Set<String> segment3GuildSet;
+  private Set<String> segment5GuildSet;
+
   List<DataSegment> segments1;
   List<DataSegment> segments2;
   List<DataSegment> segments3;
   List<DataSegment> segments4;
-  List<DataSegment> segments;
+  List<DataSegment> allSegments;
+  List<DataSegment> segmentsWithMultipleGuilds;
+
+  private DruidCoordinatorRuntimeParams params;
 
   @Before
   public void setUp()
@@ -76,6 +89,12 @@ public class ReservoirSegmentSamplerTest
     segment2 = EasyMock.createMock(DataSegment.class);
     segment3 = EasyMock.createMock(DataSegment.class);
     segment4 = EasyMock.createMock(DataSegment.class);
+    segment1GuildSet = Stream.of("guild1", "guild2").collect(Collectors.toCollection(HashSet::new));
+    segment2GuildSet = Collections.singleton("guild1");
+    segment3GuildSet = Stream.of("guild1", "guild2").collect(Collectors.toCollection(HashSet::new));
+    segment5GuildSet = Stream.of("guild1", "guild2").collect(Collectors.toCollection(HashSet::new));
+
+    params = EasyMock.createMock(DruidCoordinatorRuntimeParams.class);
 
     DateTime start1 = DateTimes.of("2012-01-01");
     DateTime start2 = DateTimes.of("2012-02-01");
@@ -125,7 +144,8 @@ public class ReservoirSegmentSamplerTest
         8L
     );
 
-    segments = Lists.newArrayList(segment1, segment2, segment3, segment4);
+    allSegments = Lists.newArrayList(segment1, segment2, segment3, segment4);
+    segmentsWithMultipleGuilds = Lists.newArrayList(segment1, segment2, segment4);
 
     segments1 = Collections.singletonList(segment1);
     segments2 = Collections.singletonList(segment2);
@@ -194,7 +214,7 @@ public class ReservoirSegmentSamplerTest
       segmentCountMap.put(ReservoirSegmentSampler.getRandomBalancerSegmentHolder(holderList, Collections.emptySet()).getSegment(), 1);
     }
 
-    for (DataSegment segment : segments) {
+    for (DataSegment segment : allSegments) {
       Assert.assertEquals(segmentCountMap.get(segment), new Integer(1));
     }
   }
@@ -203,7 +223,6 @@ public class ReservoirSegmentSamplerTest
   @Test
   public void getGuildReplicationViolatorSegmentHolderTest()
   {
-    //TODO write test
-  }
 
+  }
 }

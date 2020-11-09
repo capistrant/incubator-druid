@@ -384,7 +384,16 @@ public class DruidCoordinatorTest extends CuratorTestBase
     EasyMock.replay(immutableDruidDataSource);
 
     // Setup ServerInventoryView
-    druidServer = new DruidServer("server1", "localhost", null, 5L, ServerType.HISTORICAL, tier, 0, DruidServer.DEFAULT_GUILD);
+    druidServer = new DruidServer(
+        "server1",
+        "localhost",
+        null,
+        5L,
+        ServerType.HISTORICAL,
+        tier,
+        0,
+        DruidServer.DEFAULT_GUILD
+    );
     loadManagementPeons.put("server1", loadQueuePeon);
     EasyMock.expect(serverInventoryView.getInventory()).andReturn(
         ImmutableList.of(druidServer)
