@@ -198,4 +198,12 @@ public class ReservoirSegmentSamplerTest
       Assert.assertEquals(segmentCountMap.get(segment), new Integer(1));
     }
   }
+
+  // Test that only the first segment that does not meet guildReplication threshold is ever chosen.
+  @Test
+  public void getGuildReplicationViolatorSegmentHolderTest()
+  {
+    //TODO write test
+  }
+
 }

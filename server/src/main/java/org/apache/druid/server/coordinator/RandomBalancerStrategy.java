@@ -60,6 +60,12 @@ public class RandomBalancerStrategy implements BalancerStrategy
   }
 
   @Override
+  public BalancerSegmentHolder pickSegmentToMove(List<ServerHolder> serverHolders, Set<String> broadcastDatasources, DruidCoordinatorRuntimeParams params)
+  {
+    return ReservoirSegmentSampler.getGuildReplicationViolatorSegmentHolder(serverHolders, broadcastDatasources, params);
+  }
+
+  @Override
   public Iterator<ServerHolder> pickServersToDrop(DataSegment toDropSegment, NavigableSet<ServerHolder> serverHolders)
   {
     List<ServerHolder> serverList = new ArrayList<>(serverHolders);

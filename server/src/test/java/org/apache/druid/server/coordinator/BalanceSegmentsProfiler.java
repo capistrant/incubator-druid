@@ -53,6 +53,7 @@ public class BalanceSegmentsProfiler
   private DruidCoordinator coordinator;
   private ImmutableDruidServer druidServer1;
   private ImmutableDruidServer druidServer2;
+  private boolean guildReplicationEnabled = false;
   List<DataSegment> segments = new ArrayList<>();
   ServiceEmitter emitter;
   MetadataRuleManager manager;
@@ -135,7 +136,7 @@ public class BalanceSegmentsProfiler
         .addTier("normal", serverHolderList.toArray(new ServerHolder[0]))
         .build();
     DruidCoordinatorRuntimeParams params = CoordinatorRuntimeParamsTestHelpers
-        .newBuilder(druidCluster)
+        .newBuilder(druidCluster, guildReplicationEnabled)
         .withLoadManagementPeons(peonMap)
         .withUsedSegmentsInTest(segments)
         .withDynamicConfigs(

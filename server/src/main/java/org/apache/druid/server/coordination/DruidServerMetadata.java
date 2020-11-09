@@ -38,6 +38,7 @@ public class DruidServerMetadata
   private final String tier;
   private final ServerType type;
   private final int priority;
+  private final String guild;
 
   @JsonCreator
   public DruidServerMetadata(
@@ -47,7 +48,8 @@ public class DruidServerMetadata
       @JsonProperty("maxSize") long maxSize,
       @JsonProperty("type") ServerType type,
       @JsonProperty("tier") String tier,
-      @JsonProperty("priority") int priority
+      @JsonProperty("priority") int priority,
+      @JsonProperty("guild") String guild
   )
   {
     this.name = Preconditions.checkNotNull(name);
@@ -57,6 +59,7 @@ public class DruidServerMetadata
     this.tier = tier;
     this.type = type;
     this.priority = priority;
+    this.guild = guild;
   }
 
   @JsonProperty
@@ -105,6 +108,12 @@ public class DruidServerMetadata
   public int getPriority()
   {
     return priority;
+  }
+
+  @JsonProperty
+  public String getGuild()
+  {
+    return guild;
   }
 
   public boolean isSegmentReplicationTarget()
@@ -158,7 +167,7 @@ public class DruidServerMetadata
   @Override
   public int hashCode()
   {
-    return Objects.hash(name, hostAndPort, hostAndTlsPort, maxSize, tier, type, priority);
+    return Objects.hash(name, hostAndPort, hostAndTlsPort, maxSize, tier, type, priority, guild);
   }
 
   @Override
@@ -172,6 +181,7 @@ public class DruidServerMetadata
            ", tier='" + tier + '\'' +
            ", type=" + type +
            ", priority=" + priority +
+           ", guild=" + guild +
            '}';
   }
 }

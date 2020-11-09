@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.druid.client.DruidServer;
 import org.apache.druid.client.ImmutableDruidServer;
 import org.apache.druid.client.ImmutableDruidServerTests;
 import org.apache.druid.java.util.common.DateTimes;
@@ -37,6 +38,8 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,6 +52,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+@RunWith(Parameterized.class)
 public class BalanceSegmentsTest
 {
   private static final int MAX_SEGMENTS_TO_MOVE = 5;
@@ -72,6 +76,23 @@ public class BalanceSegmentsTest
   private ListeningExecutorService balancerStrategyExecutor;
   private BalancerStrategy balancerStrategy;
   private Set<String> broadcastDatasources;
+  private final boolean guildReplicationEnabled;
+
+  public BalanceSegmentsTest(boolean guildReplicationEnabled)
+  {
+    this.guildReplicationEnabled = guildReplicationEnabled;
+  }
+
+  @Parameterized.Parameters(name = "{index}: guildReplicationEnabled:{0}")
+  public static Iterable<Object[]> data()
+  {
+    return Arrays.asList(
+        new Object[][]{
+            {false},
+            {true}
+        }
+    );
+  }
 
   @Before
   public void setUp()
@@ -181,8 +202,8 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveToEmptyServerBalancer()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments);
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -202,7 +223,8 @@ public class BalanceSegmentsTest
 
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
-        ImmutableList.of(peon1, peon2)
+        ImmutableList.of(peon1, peon2),
+        guildReplicationEnabled
     )
         .withBalancerStrategy(predefinedPickOrderStrategy)
         .withBroadcastDatasources(broadcastDatasources)
@@ -210,6 +232,133 @@ public class BalanceSegmentsTest
 
     params = new BalanceSegmentsTester(coordinator).run(params);
     Assert.assertEquals(3, params.getCoordinatorStats().getTieredStat("movedCount", "normal"));
+  }
+
+  /**
+   * Moving segments within guild should be allowed despite > 1 replicas existing for segment in guild when there are
+   * no candiate servers on an unused guild.
+   */
+  @Test
+  public void testMoveToEmptyServerBalancer2()
+  {
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
+
+    EasyMock.replay(druidServer4);
+
+    // Mock stuff that the coordinator needs
+    mockCoordinator(coordinator);
+
+    BalancerStrategy predefinedPickOrderStrategy = new PredefinedPickOrderBalancerStrategy(
+        balancerStrategy,
+        ImmutableList.of(
+            new BalancerSegmentHolder(druidServer1, segment1),
+            new BalancerSegmentHolder(druidServer1, segment2),
+            new BalancerSegmentHolder(druidServer2, segment3),
+            new BalancerSegmentHolder(druidServer2, segment4)
+        )
+    );
+
+    DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
+        ImmutableList.of(druidServer1, druidServer2, druidServer3),
+        ImmutableList.of(peon1, peon2, peon3),
+        guildReplicationEnabled
+    )
+        .withBalancerStrategy(predefinedPickOrderStrategy)
+        .withBroadcastDatasources(broadcastDatasources)
+        .build();
+
+    params = new BalanceSegmentsTester(coordinator).run(params);
+    Assert.assertEquals(4, params.getCoordinatorStats().getTieredStat("movedCount", "normal"));
+  }
+
+  /**
+   * Segments are balanced to an empty server in an unused guild rather than an empty server in a used guild
+   */
+  @Test
+  public void testMoveToEmptyServerBalancerWithTwoGuilds()
+  {
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer4, "4", "normal", 0L, 100L, Collections.emptyList(), "guild_2");
+
+    // Mock stuff that the coordinator needs
+    mockCoordinator(coordinator);
+
+    BalancerStrategy predefinedPickOrderStrategy = new PredefinedPickOrderBalancerStrategy(
+        balancerStrategy,
+        ImmutableList.of(
+            new BalancerSegmentHolder(druidServer1, segment1),
+            new BalancerSegmentHolder(druidServer1, segment2),
+            new BalancerSegmentHolder(druidServer2, segment3),
+            new BalancerSegmentHolder(druidServer2, segment4)
+        )
+    );
+
+    // This test is designed only for validating guildReplication.on=true code paths
+    DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
+        ImmutableList.of(druidServer1, druidServer2, druidServer3, druidServer4),
+        ImmutableList.of(peon1, peon2, peon3, peon4),
+        true
+    )
+        .withBalancerStrategy(predefinedPickOrderStrategy)
+        .withBroadcastDatasources(broadcastDatasources)
+        .build();
+
+    params = new BalanceSegmentsTester(coordinator).run(params);
+    Assert.assertEquals(4, params.getCoordinatorStats().getTieredStat("movedCount", "normal"));
+    Assert.assertThat(
+        peon4.getSegmentsToLoad(),
+        Matchers.is(Matchers.equalTo(ImmutableSet.of(segment1, segment2, segment3, segment4)))
+    );
+  }
+
+  /**
+   * Segments are balanced within the guild when balancing to another used guild would comprimise guild distribution.
+   */
+  @Test
+  public void testMoveToEmptyServerBalancerWithTwoGuilds2()
+  {
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, segments, "guild_2");
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer4, "4", "normal", 0L, 100L, Collections.emptyList(), "guild_2");
+
+    // Mock stuff that the coordinator needs
+    mockCoordinator(coordinator);
+
+    BalancerStrategy predefinedPickOrderStrategy = new PredefinedPickOrderBalancerStrategy(
+        balancerStrategy,
+        ImmutableList.of(
+            new BalancerSegmentHolder(druidServer1, segment1),
+            new BalancerSegmentHolder(druidServer1, segment2),
+            new BalancerSegmentHolder(druidServer2, segment3),
+            new BalancerSegmentHolder(druidServer2, segment4)
+        )
+    );
+
+    // This test is designed only for validating guildReplication.on=true code paths
+    DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
+        ImmutableList.of(druidServer1, druidServer2, druidServer3, druidServer4),
+        ImmutableList.of(peon1, peon2, peon3, peon4),
+        true
+    )
+        .withBalancerStrategy(predefinedPickOrderStrategy)
+        .withBroadcastDatasources(broadcastDatasources)
+        .build();
+
+    params = new BalanceSegmentsTester(coordinator).run(params);
+    Assert.assertEquals(4, params.getCoordinatorStats().getTieredStat("movedCount", "normal"));
+    Assert.assertThat(
+        peon3.getSegmentsToLoad(),
+        Matchers.is(Matchers.equalTo(ImmutableSet.of(segment1, segment2)))
+    );
+    Assert.assertThat(
+        peon4.getSegmentsToLoad(),
+        Matchers.is(Matchers.equalTo(ImmutableSet.of(segment3, segment4)))
+    );
   }
 
   /**
@@ -223,9 +372,9 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveDecommissioningMaxPercentOfMaxSegmentsToMove()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment2));
-    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, Arrays.asList(segment3, segment4));
-    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment2), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, Arrays.asList(segment3, segment4), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer4);
 
@@ -247,12 +396,14 @@ public class BalanceSegmentsTest
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2, druidServer3),
         ImmutableList.of(peon1, peon2, peon3),
-        ImmutableList.of(false, true, false)
+        ImmutableList.of(false, true, false),
+        guildReplicationEnabled
     )
         .withDynamicConfigs(
             CoordinatorDynamicConfig.builder()
                                     .withMaxSegmentsToMove(3)
                                     .withDecommissioningMaxPercentOfMaxSegmentsToMove(60)
+                                    .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
                                     .build() // ceil(3 * 0.6) = 2 segments from decommissioning servers
         )
         .withBalancerStrategy(strategy)
@@ -291,9 +442,9 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveDecommissioningMaxPercentOfMaxSegmentsToMoveWithNoDecommissioning()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment2));
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Arrays.asList(segment3, segment4));
-    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment2), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Arrays.asList(segment3, segment4), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer4);
 
@@ -314,12 +465,14 @@ public class BalanceSegmentsTest
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2, druidServer3),
         ImmutableList.of(peon1, peon2, peon3),
-        ImmutableList.of(false, false, false)
+        ImmutableList.of(false, false, false),
+        guildReplicationEnabled
     )
         .withDynamicConfigs(
             CoordinatorDynamicConfig.builder()
                                     .withMaxSegmentsToMove(3)
                                     .withDecommissioningMaxPercentOfMaxSegmentsToMove(9)
+                                    .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
                                     .build()
         )
         .withBalancerStrategy(strategy)
@@ -340,8 +493,8 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveToDecommissioningServer()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments);
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -361,7 +514,8 @@ public class BalanceSegmentsTest
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
         ImmutableList.of(peon1, peon2),
-        ImmutableList.of(false, true)
+        ImmutableList.of(false, true),
+        guildReplicationEnabled
     )
         .withBalancerStrategy(strategy)
         .withBroadcastDatasources(broadcastDatasources)
@@ -374,8 +528,8 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveFromDecommissioningServer()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments);
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -395,9 +549,15 @@ public class BalanceSegmentsTest
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
         ImmutableList.of(peon1, peon2),
-        ImmutableList.of(true, false)
+        ImmutableList.of(true, false),
+        guildReplicationEnabled
     )
-        .withDynamicConfigs(CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(1).build())
+        .withDynamicConfigs(
+            CoordinatorDynamicConfig.builder()
+                                    .withMaxSegmentsToMove(1)
+                                    .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
+                                    .build()
+        )
         .withBalancerStrategy(strategy)
         .withBroadcastDatasources(broadcastDatasources)
         .build();
@@ -411,8 +571,8 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveMaxLoadQueueServerBalancer()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments);
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -432,7 +592,8 @@ public class BalanceSegmentsTest
 
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
-        ImmutableList.of(peon1, peon2)
+        ImmutableList.of(peon1, peon2),
+        guildReplicationEnabled
     )
         .withBalancerStrategy(predefinedPickOrderStrategy)
         .withBroadcastDatasources(broadcastDatasources)
@@ -441,6 +602,7 @@ public class BalanceSegmentsTest
                 .builder()
                 .withMaxSegmentsToMove(MAX_SEGMENTS_TO_MOVE)
                 .withMaxSegmentsInNodeLoadingQueue(1)
+                .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
                 .build()
         )
         .build();
@@ -454,8 +616,8 @@ public class BalanceSegmentsTest
   @Test
   public void testMoveSameSegmentTwice()
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments);
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -472,14 +634,16 @@ public class BalanceSegmentsTest
 
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
-        ImmutableList.of(peon1, peon2)
+        ImmutableList.of(peon1, peon2),
+        guildReplicationEnabled
     )
         .withBalancerStrategy(predefinedPickOrderStrategy)
         .withBroadcastDatasources(broadcastDatasources)
         .withDynamicConfigs(
-            CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(
-                2
-            ).build()
+            CoordinatorDynamicConfig.builder()
+                                    .withMaxSegmentsToMove(2)
+                                    .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
+                                    .build()
         )
         .build();
 
@@ -491,8 +655,8 @@ public class BalanceSegmentsTest
   public void testRun1()
   {
     // Mock some servers of different usages
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments);
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer3);
     EasyMock.replay(druidServer4);
@@ -502,7 +666,8 @@ public class BalanceSegmentsTest
 
     DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2),
-        ImmutableList.of(peon1, peon2)
+        ImmutableList.of(peon1, peon2),
+        guildReplicationEnabled
     ).build();
 
     params = new BalanceSegmentsTester(coordinator).run(params);
@@ -513,15 +678,24 @@ public class BalanceSegmentsTest
   public void testRun2()
   {
     // Mock some servers of different usages
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments);
-    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList());
-    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList());
-    mockDruidServer(druidServer4, "4", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, segments, DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer4, "4", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     // Mock stuff that the coordinator needs
     mockCoordinator(coordinator);
 
-    DruidCoordinatorRuntimeParams params = defaultRuntimeParamsBuilder(druidServers, peons).build();
+    DruidCoordinatorRuntimeParams params =
+        defaultRuntimeParamsBuilder(
+            druidServers,
+            peons,
+            guildReplicationEnabled
+        ).withDynamicConfigs(
+            CoordinatorDynamicConfig.builder()
+                                    .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
+                                    .build()
+        ).build();
 
     params = new BalanceSegmentsTester(coordinator).run(params);
     Assert.assertTrue(params.getCoordinatorStats().getTieredStat("movedCount", "normal") > 0);
@@ -529,36 +703,38 @@ public class BalanceSegmentsTest
 
   private DruidCoordinatorRuntimeParams.Builder defaultRuntimeParamsBuilder(
       List<ImmutableDruidServer> druidServers,
-      List<LoadQueuePeon> peons
+      List<LoadQueuePeon> peons,
+      boolean guildReplicationEnabled
   )
   {
     return defaultRuntimeParamsBuilder(
         druidServers,
         peons,
-        druidServers.stream().map(s -> false).collect(Collectors.toList())
+        druidServers.stream().map(s -> false).collect(Collectors.toList()),
+        guildReplicationEnabled
     );
   }
 
   private DruidCoordinatorRuntimeParams.Builder defaultRuntimeParamsBuilder(
       List<ImmutableDruidServer> druidServers,
       List<LoadQueuePeon> peons,
-      List<Boolean> decommissioning
+      List<Boolean> decommissioning,
+      boolean guildReplicationEnabled
   )
   {
+    DruidCluster druidCluster = DruidClusterBuilder
+        .newBuilder()
+        .addTier(
+            "normal",
+            IntStream
+                .range(0, druidServers.size())
+                .mapToObj(i -> new ServerHolder(druidServers.get(i), peons.get(i), decommissioning.get(i)))
+                .toArray(ServerHolder[]::new)
+        )
+        .build();
     return CoordinatorRuntimeParamsTestHelpers
         .newBuilder()
-        .withDruidCluster(
-            DruidClusterBuilder
-                .newBuilder()
-                .addTier(
-                    "normal",
-                    IntStream
-                        .range(0, druidServers.size())
-                        .mapToObj(i -> new ServerHolder(druidServers.get(i), peons.get(i), decommissioning.get(i)))
-                        .toArray(ServerHolder[]::new)
-                )
-                .build()
-        )
+        .withDruidCluster(druidCluster)
         .withLoadManagementPeons(
             IntStream
                 .range(0, peons.size())
@@ -566,9 +742,16 @@ public class BalanceSegmentsTest
                 .collect(Collectors.toMap(i -> String.valueOf(i + 1), peons::get))
         )
         .withUsedSegmentsInTest(segments)
-        .withDynamicConfigs(CoordinatorDynamicConfig.builder().withMaxSegmentsToMove(MAX_SEGMENTS_TO_MOVE).build())
+        .withDynamicConfigs(
+            CoordinatorDynamicConfig.builder()
+                                    .withMaxSegmentsToMove(MAX_SEGMENTS_TO_MOVE)
+                                    .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
+                                    .build()
+        )
         .withBroadcastDatasources(broadcastDatasources)
-        .withBalancerStrategy(balancerStrategy);
+        .withBalancerStrategy(balancerStrategy)
+        .withGuildReplicationDirective(guildReplicationEnabled)
+        .withSegmentReplicantLookup(SegmentReplicantLookup.make(druidCluster, guildReplicationEnabled));
   }
 
   private static void mockDruidServer(
@@ -577,7 +760,8 @@ public class BalanceSegmentsTest
       String tier,
       long currentSize,
       long maxSize,
-      List<DataSegment> segments
+      List<DataSegment> segments,
+      String guild
   )
   {
     EasyMock.expect(druidServer.getName()).andReturn(name).anyTimes();
@@ -593,6 +777,7 @@ public class BalanceSegmentsTest
       );
     }
     EasyMock.expect(druidServer.getSegment(EasyMock.anyObject())).andReturn(null).anyTimes();
+    EasyMock.expect(druidServer.getGuild()).andReturn(guild).anyTimes();
     EasyMock.replay(druidServer);
   }
 
@@ -643,6 +828,12 @@ public class BalanceSegmentsTest
     }
 
     @Override
+    public BalancerSegmentHolder pickSegmentToMove(List<ServerHolder> serverHolders, Set<String> broadcastDatasources, DruidCoordinatorRuntimeParams params)
+    {
+      return pickOrder.get(pickCounter.getAndIncrement() % pickOrder.size());
+    }
+
+    @Override
     public void emitStats(String tier, CoordinatorStats stats, List<ServerHolder> serverHolderList)
     {
       delegate.emitStats(tier, stats, serverHolderList);
@@ -651,9 +842,9 @@ public class BalanceSegmentsTest
 
   private DruidCoordinatorRuntimeParams setupParamsForDecommissioningMaxPercentOfMaxSegmentsToMove(int percent)
   {
-    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment3));
-    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, Arrays.asList(segment2, segment3));
-    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList());
+    mockDruidServer(druidServer1, "1", "normal", 30L, 100L, Arrays.asList(segment1, segment3), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer2, "2", "normal", 30L, 100L, Arrays.asList(segment2, segment3), DruidServer.DEFAULT_GUILD);
+    mockDruidServer(druidServer3, "3", "normal", 0L, 100L, Collections.emptyList(), DruidServer.DEFAULT_GUILD);
 
     EasyMock.replay(druidServer4);
 
@@ -673,12 +864,14 @@ public class BalanceSegmentsTest
     return defaultRuntimeParamsBuilder(
         ImmutableList.of(druidServer1, druidServer2, druidServer3),
         ImmutableList.of(peon1, peon2, peon3),
-        ImmutableList.of(false, true, false)
+        ImmutableList.of(false, true, false),
+        guildReplicationEnabled
     )
         .withDynamicConfigs(
             CoordinatorDynamicConfig.builder()
                                     .withMaxSegmentsToMove(1)
                                     .withDecommissioningMaxPercentOfMaxSegmentsToMove(percent)
+                                    .withGuildReplicationMaxPercentOfMaxSegmentsToMove(0)
                                     .build()
         )
         .withBalancerStrategy(strategy)

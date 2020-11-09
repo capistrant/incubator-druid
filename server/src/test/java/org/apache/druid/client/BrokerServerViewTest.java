@@ -104,7 +104,8 @@ public class BrokerServerViewTest extends CuratorTestBase
         10000000L,
         ServerType.HISTORICAL,
         "default_tier",
-        0
+        0,
+        "_default_guild"
     );
 
     setupZNodeForServer(druidServer, zkPathsConfig, jsonMapper);
@@ -167,7 +168,8 @@ public class BrokerServerViewTest extends CuratorTestBase
             10000000L,
             ServerType.HISTORICAL,
             "default_tier",
-            0
+            0,
+            "_default_guild"
         )
     );
 
@@ -264,7 +266,8 @@ public class BrokerServerViewTest extends CuratorTestBase
         10000000L,
         ServerType.BROKER,
         "default_tier",
-        0
+        0,
+        "_default_guild"
     );
 
     final List<DruidServer> druidServers = Lists.transform(
@@ -276,7 +279,8 @@ public class BrokerServerViewTest extends CuratorTestBase
             10000000L,
             ServerType.HISTORICAL,
             "default_tier",
-            0
+            0,
+            "_default_guild"
         )
     );
 
