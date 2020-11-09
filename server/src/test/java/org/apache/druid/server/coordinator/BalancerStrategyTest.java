@@ -148,7 +148,7 @@ public class BalancerStrategyTest
             ServerType.HISTORICAL,
             DruidServer.DEFAULT_TIER,
             0,
-            "_default_guild"
+            DruidServer.DEFAULT_GUILD
         ).toImmutableDruidServer(),
         new LoadQueuePeonTester());
     serverHolders = new ArrayList<>();

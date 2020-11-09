@@ -132,7 +132,7 @@ public class DruidClusterTest
                         ServerType.HISTORICAL,
                         "tier1",
                         0,
-                        "_default_guild"
+                        DruidServer.DEFAULT_GUILD
                     ),
                     0L,
                     ImmutableMap.of("src1", DATA_SOURCES.get("src1")),

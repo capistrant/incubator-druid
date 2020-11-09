@@ -157,7 +157,8 @@ public class BalanceSegments implements CoordinatorDuty
     Pair<Integer, Integer> decommissioningResult =
         balanceServers(params, decommissioningServers, activeServers, maxSegmentsToMoveFromDecommissioningNodes, false);
 
-    // If guildReplication is enabled, run balanceSegments focused solely on moving segments who live on <= 1 guild.
+    // If guildReplication is enabled and the dynamic config guildReplicationMaxPercentOfMaxSegmentsToMove > 0,
+    // run balanceSegments focused solely on moving segments who live on <= 1 guild.
     int guildReplicationMovePercent = params.getCoordinatorDynamicConfig().getGuildReplicationMaxPercentOfMaxSegmentsToMove();
     if (params.isGuildReplicationEnabled() && guildReplicationMovePercent > 0) {
       int guildReplicationMaxSegmentsToMove = (int) Math.ceil((maxSegmentsToMove - decommissioningResult.lhs) * (guildReplicationMovePercent / 100.0));
@@ -273,8 +274,6 @@ public class BalanceSegments implements CoordinatorDuty
               params.getSegmentReplicantLookup().getGuildSetForSegment(segmentToMove.getId());
 
           // The replication factor for this segment on the guild that the segment we are moving lives on.
-          // The statement should never be null, but we protect against that in case the guild data structure is invalid
-          // in regards to this segment.
           final int guildReplicationFactor =
               params
                   .getSegmentReplicantLookup()
