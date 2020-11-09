@@ -117,6 +117,10 @@ final class ReservoirSegmentSampler
         proposalSegment = segment;
         break;
       }
+      // If we short circuited from inner for-loop, we can break out of outer for loop
+      if (fromServerHolder != null) {
+        break;
+      }
     }
     if (fromServerHolder != null) {
       return new BalancerSegmentHolder(fromServerHolder.getServer(), proposalSegment);
