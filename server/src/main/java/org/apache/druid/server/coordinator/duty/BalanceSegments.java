@@ -150,12 +150,24 @@ public class BalanceSegments implements CoordinatorDuty
     // An aggregate result that accumulates during decommissioning moves and guild replication moves
     Pair<Integer, Integer> specialtyMoveResult;
 
-    log.info(
-        "Processing %d segments for moving from decommissioning servers",
-        maxSegmentsToMoveFromDecommissioningNodes
-    );
-    Pair<Integer, Integer> decommissioningResult =
-        balanceServers(params, decommissioningServers, activeServers, maxSegmentsToMoveFromDecommissioningNodes, false);
+    Pair<Integer, Integer> decommissioningResult;
+    if (decommissioningServers.size() > 0) {
+      log.info(
+          "Processing %d segments for moving from decommissioning servers",
+          maxSegmentsToMoveFromDecommissioningNodes
+      );
+      decommissioningResult =
+          balanceServers(
+              params,
+              decommissioningServers,
+              activeServers,
+              maxSegmentsToMoveFromDecommissioningNodes,
+              false
+          );
+    } else {
+      // There were no decommissioning servers, default to an empty Pair.
+      decommissioningResult = new Pair<>(0, 0);
+    }
 
     // If guildReplication is enabled and the dynamic config guildReplicationMaxPercentOfMaxSegmentsToMove > 0,
     // run balanceSegments focused solely on moving segments who live on <= 1 guild.
@@ -292,8 +304,25 @@ public class BalanceSegments implements CoordinatorDuty
                                     (maxToLoad <= 0 || s.getNumberOfSegmentsInQueue() < maxToLoad)) ||
                                    (!usedGuildSet.contains(s.getServer().getGuild())) &&
                                    (!s.isServingSegment(segmentToMove)) &&
-                                   (maxToLoad <= 0 || s.getNumberOfSegmentsInQueue() < maxToLoad))
-                      .collect(Collectors.toList());
+                                   (maxToLoad <= 0 || s.getNumberOfSegmentsInQueue() < maxToLoad)
+                      ).collect(Collectors.toList());
+
+          // If filteredToMoveTo is empty and guildReplication is greater than 1, the coordinator  will try to populate
+          // filteredToMoveTo by using more permissive criteria. Doing so will reduce the chance of an unbalanced cluster.
+          // Since we have a guildReplicationFactor > 1, we know we can take the freedom to move this segment anywhere that
+          // it isn't already being served.
+          // This criteria will consider any node that is not serving the segment as well as the the node serving the segment,
+          // with the stipulation that it's load queue is not full as usual.
+          if (filteredToMoveTo.size() == 0 && guildReplicationFactor > 1) {
+            filteredToMoveTo =
+                toMoveTo.stream()
+                        .filter(s -> (s.getServer().getGuild().equals(fromServer.getGuild()) &&
+                                      (!s.isServingSegment(segmentToMove)) &&
+                                      (maxToLoad <= 0 || s.getNumberOfSegmentsInQueue() < maxToLoad)) ||
+                                     (!s.isServingSegment(segmentToMove)) &&
+                                     (maxToLoad <= 0 || s.getNumberOfSegmentsInQueue() < maxToLoad)
+                        ).collect(Collectors.toList());
+          }
         }
 
         if (filteredToMoveTo.size() > 0) {
