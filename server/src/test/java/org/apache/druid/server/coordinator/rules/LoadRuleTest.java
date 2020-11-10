@@ -204,6 +204,71 @@ public class LoadRuleTest
     EasyMock.verify(throttler, mockPeon, mockBalancerStrategy);
   }
 
+  // This test is only meant for guild replication being enabled.
+  // Test that druid will always work to meet the desired replicants even if it can't meet replication
+  // across more than one guild
+  @Test
+  public void testLoadOntoUsedGuildIfNoServersAvailableOnUnusedGuild()
+  {
+    EasyMock.expect(throttler.canCreateReplicant(EasyMock.anyString())).andReturn(true).anyTimes();
+
+    final LoadQueuePeon mockPeon = createEmptyPeon();
+    mockPeon.loadSegment(EasyMock.anyObject(), EasyMock.anyObject());
+    EasyMock.expectLastCall().times(2);
+
+    LoadRule rule = createLoadRule(ImmutableMap.of(
+        DruidServer.DEFAULT_TIER, 2
+    ));
+
+    final DataSegment segment = createDataSegment("foo");
+
+    ServerHolder holder1 = createServerHolder(DruidServer.DEFAULT_TIER, mockPeon, false);
+    ServerHolder holder2 = new ServerHolder(
+        new DruidServer(
+            "server2",
+            "host2",
+            null,
+            1000,
+            ServerType.HISTORICAL,
+            DruidServer.DEFAULT_TIER,
+            0,
+            DruidServer.DEFAULT_GUILD
+        ).toImmutableDruidServer(),
+        mockPeon
+    );
+
+    throttler.registerReplicantCreation(DruidServer.DEFAULT_TIER, segment.getId(), "host2");
+    EasyMock.expectLastCall().once();
+
+    // Force pick holder1 for the primary
+    EasyMock.expect(
+        mockBalancerStrategy.findNewSegmentHomeReplicator(segment, ImmutableList.of(holder2, holder1)))
+            .andReturn(holder1);
+    EasyMock.expect(mockBalancerStrategy.findNewSegmentHomeReplicator(segment, ImmutableList.of(holder2)))
+            .andDelegateTo(balancerStrategy);
+
+    EasyMock.replay(throttler, mockPeon, mockBalancerStrategy);
+
+    DruidCluster druidCluster = DruidClusterBuilder
+        .newBuilder()
+        .addTier(
+            DruidServer.DEFAULT_TIER,
+            holder1,
+            holder2
+        )
+        .build();
+
+    // This test is written only for guildReplicationEnabled = true. Therefore, not using parameterized value for params
+    CoordinatorStats stats = rule.run(null, makeCoordinatorRuntimeParams(druidCluster, true, segment), segment);
+
+    Assert.assertEquals(2L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, DruidServer.DEFAULT_TIER));
+
+    EasyMock.verify(throttler, mockPeon, mockBalancerStrategy);
+  }
+
+  // This test is only meant for guild replication being enabled.
+  // Test that if a primary is loaded to one tier and a replicant is expected in another tier, druid will prefer
+  // to load that replicant on a server that increases guild replication.
   @Test
   public void testLoadTwoTierTwoGuilds()
   {
@@ -289,6 +354,9 @@ public class LoadRuleTest
     EasyMock.verify(throttler, mockPeon, mockBalancerStrategy);
   }
 
+  // This test is only meant for guild replication being enabled.
+  // Test that when loading a replica with guild replication enabled, druid will prefer a server that increases
+  // rack distribution for the segment being loaded if that segment lives on only one guild at time of replication.
   @Test
   public void testLoadOneTierTwoGuilds()
   {
@@ -296,6 +364,10 @@ public class LoadRuleTest
 
     final LoadQueuePeon mockPeon = createEmptyPeon();
     mockPeon.loadSegment(EasyMock.anyObject(), EasyMock.anyObject());
+    EasyMock.expectLastCall().atLeastOnce();
+
+    final LoadQueuePeon mockPeonTwo = createEmptyPeon();
+    mockPeonTwo.loadSegment(EasyMock.anyObject(), EasyMock.anyObject());
     EasyMock.expectLastCall().atLeastOnce();
 
     LoadRule rule = createLoadRule(ImmutableMap.of(
@@ -317,7 +389,7 @@ public class LoadRuleTest
             0,
             "guild_2"
         ).toImmutableDruidServer(),
-        mockPeon
+        mockPeonTwo
     );
 
     throttler.registerReplicantCreation(DruidServer.DEFAULT_TIER, segment.getId(), "host3");
@@ -330,7 +402,7 @@ public class LoadRuleTest
     EasyMock.expect(mockBalancerStrategy.findNewSegmentHomeReplicator(segment, ImmutableList.of(holder3)))
             .andDelegateTo(balancerStrategy);
 
-    EasyMock.replay(throttler, mockPeon, mockBalancerStrategy);
+    EasyMock.replay(throttler, mockPeon, mockPeonTwo, mockBalancerStrategy);
 
     DruidCluster druidCluster = DruidClusterBuilder
         .newBuilder()
@@ -347,7 +419,7 @@ public class LoadRuleTest
 
     Assert.assertEquals(2L, stats.getTieredStat(LoadRule.ASSIGNED_COUNT, DruidServer.DEFAULT_TIER));
 
-    EasyMock.verify(throttler, mockPeon, mockBalancerStrategy);
+    EasyMock.verify(throttler, mockPeon, mockPeonTwo, mockBalancerStrategy);
   }
 
   private DruidCoordinatorRuntimeParams makeCoordinatorRuntimeParams(
