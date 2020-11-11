@@ -1031,7 +1031,7 @@ public class BalanceSegmentsTest
         .withSegmentReplicantLookup(SegmentReplicantLookup.make(druidCluster, guildReplicationEnabled));
   }
 
-    private static void mockDruidServer(
+  private static void mockDruidServer(
       ImmutableDruidServer druidServer,
       String name,
       String tier,

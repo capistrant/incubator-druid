@@ -341,13 +341,24 @@ public abstract class LoadRule implements Rule
 
     final List<ServerHolder> holders = getFilteredHolders(tier, params.getDruidCluster(), predicate);
 
+    // These Lists will be used if guild replication is enabled.
+    // They will become a partitioned representation of holders.
+    List<ServerHolder> usedGuildHolders = new ArrayList<>();
+    List<ServerHolder> unusedGuildHolders = new ArrayList<>();
+    // If guild replication is enabled, we split the candidate ServerHolders by partitioning on whether or not
+    // the candidate's guild is home to the segment we are loading.
+    if (params.isGuildReplicationEnabled()) {
+      Map<Boolean, List<ServerHolder>> partitions =
+          holders.stream().collect(Collectors.partitioningBy(s -> usedGuildSet.contains(s.getServer().getGuild())));
+      usedGuildHolders = partitions.get(true);
+      unusedGuildHolders = partitions.get(false);
+    }
+
     // if no holders available for assignment
     if (holders.isEmpty()) {
       log.warn(noAvailability);
       return 0;
     }
-
-
 
     final ReplicationThrottler throttler = params.getReplicationManager();
     for (int numAssigned = 0; numAssigned < numToAssign; numAssigned++) {
@@ -369,17 +380,6 @@ public abstract class LoadRule implements Rule
       } else {
         // If guild replication is enabled, we prefer to load the segment to an unused guild, but will load to a used
         // guild if there are no ServerHolders on an unused guild.
-
-        // If guild replication is enabled, we split the candidate ServerHolders by partitioning on whether or not
-        // the candidate's guild is home to the segment we are loading.
-        List<ServerHolder> usedGuildHolders = new ArrayList<>();
-        List<ServerHolder> unusedGuildHolders = new ArrayList<>();
-        if (params.isGuildReplicationEnabled()) {
-          Map<Boolean, List<ServerHolder>> partitions =
-              holders.stream().collect(Collectors.partitioningBy(s -> usedGuildSet.contains(s.getServer().getGuild())));
-          usedGuildHolders = partitions.get(true);
-          unusedGuildHolders = partitions.get(false);
-        }
 
         // We don't want to used the cached holder if it is on a used guild. We defer to using later if needed.
         if (holder != null && usedGuildSet.contains(holder.getServer().getGuild())) {
